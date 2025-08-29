@@ -21,7 +21,7 @@
 2. **Documentation Excellence** - READMEs & ADRs
 3. **AI-Assisted Coding** - GitHub Copilot best practices
 4. **Cloud Development** - CodeSpaces environment
-5. **Team Formation** - Find your project partners
+5. **Team Pitches** - Start Working On Pitches for Next Week
 
 ---
 
@@ -49,8 +49,6 @@
 - **Daily Standups** - 15-minute progress sync
 - **Retrospectives** - Continuous improvement
 - **User Stories** - Customer-focused features
-
-> "This is how Netflix ships features every two weeks without breaking production"
 
 ---
 
@@ -117,9 +115,9 @@ So that I can see where I'm overspending
 
 ### The Hidden Multiplier
 
-- 📉 Poor docs = 2-day onboarding → 2 weeks
-- 📈 Good docs = New developer productive more quickly
-- 🔄 Self-documenting code is a myth
+- 📉 Poor docs = Slower Onboarding
+- 📈 Good docs = New developers are productive more quickly
+- 🔄 Self-documenting code is not enough
 - 💡 "Good documentation is the difference between legacy code and maintainable systems"
 
 ---
