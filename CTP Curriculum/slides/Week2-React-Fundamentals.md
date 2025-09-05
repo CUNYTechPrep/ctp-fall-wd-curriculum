@@ -58,6 +58,7 @@ for (await event in events) {
 ```
 
 **Your UI is a function of your application state**
+
 ---
 ### What This Means:
 - Predictable updates
@@ -93,6 +94,7 @@ btn.addEventListener('click', () => {
 });
 ```
 
+---
 ### The React Way (Declarative)
 
 ```jsx
@@ -158,12 +160,13 @@ React.createElement('div', { className: 'card' },
 
 ### Key Differences from HTML
 
-| HTML | JSX |
-|------|-----|
-| `class` | `className` |
-| `for` | `htmlFor` |
-| `onclick` | `onClick` |
+| HTML                 | JSX                        |
+| -------------------- | -------------------------- |
+| `class`              | `className`                |
+| `for`                | `htmlFor`                  |
+| `onclick`            | `onClick`                  |
 | `style="color: red"` | `style={{ color: 'red' }}` |
+
 ---
 ### JavaScript in JSX
 ```jsx
@@ -269,7 +272,7 @@ function ExpenseList() {
 
 ```jsx
 function ExpenseList() {
-  const expenses = useState([]);
+  const [expenses, setExpenses] = useState([]);
   return (
     <div>
       <h2>Your Expenses</h2>
@@ -526,7 +529,17 @@ const validate = () => {
 # Team Project Time
 
 ---
+## Project Ideas:
 
+- **StudyBuddy:** Match students for study sessions based on courses and availability
+- **PetPal:** Connect pet owners for playdates and pet-sitting exchanges
+- **MealMate:** Coordinate group cooking and meal sharing in dorms/apartments
+---
+## Project Ideas:
+- **SkillSwap:** Trade skills (coding for design, language for music, etc.)
+- **EventHub:** Discover and organize local community events
+- **GreenThumb:** Plant care reminders and community garden coordination
+---
 ## Project Pitches
 
 ### Lightning Round Format
@@ -538,24 +551,13 @@ const validate = () => {
 - Why it matters
 
 ---
-### README as Your Pitch Deck
-```markdown
-# Project Name
-## 🎯 Problem Statement
-## 💡 Solution
-## 🎨 Key Features
-## 🔧 Technical Approach
-```
-
----
-
 ## Team Formation
 
 ### Finding Your Squad
 
 **Interest Declaration:**
-- Post top 3 choices in chat
-- Natural clusters will emerge
+- Form teams over the next week through discussion
+- When you have your team, introduce your team and project!
 - 3-4 members per team
 
 ---
