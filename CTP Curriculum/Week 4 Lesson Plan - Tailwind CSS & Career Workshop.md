@@ -1,38 +1,43 @@
 ## LEARNING OBJECTIVES
 
 ### Content Objectives (What students will know):
+- Understand component isolation and testing with React Cosmos
+- Describe the benefits of developing components in isolation
+- Analyze component variations and edge cases through fixtures
 - Identify utility-first CSS principles and explain Tailwind's design philosophy
 - Compare traditional CSS approaches with utility-first methodology
-- Analyze responsive design patterns using Tailwind's breakpoint system
-- Describe component composition using utility classes
 
 ### Language Objectives (How students will communicate learning):
-- **Reading:** Interpret Tailwind documentation, utility class names, and configuration files
-- **Writing:** Create styled components using utility classes and document design decisions
-- **Speaking:** Articulate design choices, present styled interfaces, and explain responsive strategies
-- **Listening:** Understand design feedback, process styling requirements, and collaborate on UI decisions
+- **Reading:** Interpret Cosmos fixtures, component documentation, Tailwind utility classes, and configuration files
+- **Writing:** Write Cosmos fixtures, create styled components using utility classes, and document design decisions
+- **Speaking:** Demonstrate component variations, explain testing strategies, articulate design choices, and present styled interfaces
+- **Listening:** Review component testing approaches, understand design feedback, process styling requirements, and collaborate on UI decisions
 
 ### Learning Objectives (What students will be able to do):
 By the end of this session, students will be able to:
+- Set up React Cosmos for component development and testing
+- Create fixtures to test component variations in isolation
+- Develop components in isolation before integration
 - Style React components using Tailwind utility classes
 - Implement responsive layouts with Tailwind breakpoints
-- Create reusable component styles using Tailwind patterns
-- Configure and customize Tailwind for team projects
+- Combine Cosmos fixtures with Tailwind styling for comprehensive component testing
 
 ## MATERIALS & PREPARATION
 
 ### Instructor Prep:
-- Presentation prepared: Tailwind CSS fundamentals (15 slides max - compact for career workshop)
-- Code examples: Expense tracker with complete Tailwind styling
+- Presentation prepared: React Cosmos fundamentals & Tailwind CSS styling (15 slides max - compact for career workshop)
+- React Cosmos demo: Component isolation and testing setup with fixtures
+- Code examples: Expense tracker components with Cosmos fixtures
+- Component library: Button, card, and form components with fixtures and Tailwind styling
 - Design system: Color palette, spacing scale, and typography examples
-- Component library: Styled button, card, and form components
 - Career workshop materials coordinated with career services
 
 ### TA Prep:
+- React Cosmos: Understanding of fixtures, component testing, and isolation
+- Component testing: Knowledge of testing patterns and edge cases
 - Tailwind proficiency: Understanding of utility classes and responsive modifiers
 - Design patterns: Knowledge of common Tailwind component patterns
-- Troubleshooting: Ability to debug styling issues quickly
-- VS Code extensions: Tailwind CSS IntelliSense installed and configured
+- Troubleshooting: Ability to debug testing and styling issues quickly
 
 ### Student Requirements:
 - **Completed from Week 3:** TypeScript components working
@@ -41,62 +46,131 @@ By the end of this session, students will be able to:
 - **Preparation:** Basic CSS knowledge refreshed
 
 ### Technology Setup:
-- **Development:** CodeSpaces with Tailwind CSS installed
+- **Development:** CodeSpaces with React Cosmos and Tailwind CSS installed
+- **Testing:** React Cosmos configured with basic setup and fixtures folder
 - **Extensions:** Tailwind CSS IntelliSense for VS Code
-- **Configuration:** tailwind.config.js ready for customization
-- **Resources:** Tailwind documentation, component examples
+- **Configuration:** cosmos.config.json and tailwind.config.js ready
+- **Resources:** Cosmos documentation, Tailwind docs, component examples
 
 ## COMPACT SESSION TIMELINE (Adjusted for Career Workshop)
 
 | Time | Duration | Activity | Format | Assessment |
 |------|----------|----------|---------|------------|
-| 0-5 min | 5 min | Launch & Tailwind Philosophy | Demo | Engagement |
-| 5-20 min | 15 min | Lecture: Tailwind Fundamentals | Presentation | Understanding |
-| 20-35 min | 15 min | I DO: Component Styling | Live coding | Pattern recognition |
-| 35-50 min | 15 min | YOU DO: Style Your Components | Practice | Implementation |
+| 0-5 min | 5 min | Launch & React Cosmos Introduction | Demo | Engagement |
+| 5-15 min | 10 min | Lecture: Component Isolation with Cosmos | Presentation | Understanding |
+| 15-25 min | 10 min | I DO: Creating Component Fixtures | Live coding | Pattern recognition |
+| 25-35 min | 10 min | Tailwind CSS Fundamentals | Presentation | CSS concepts |
+| 35-50 min | 15 min | YOU DO: Create Fixtures & Style Components | Practice | Implementation |
 | 50-60 min | 10 min | BREAK | Informal | None |
-| 60-90 min | 30 min | Team Project: Design System Setup | Collaboration | Design tokens |
+| 60-90 min | 30 min | Team Project: Component Library with Cosmos & Tailwind | Collaboration | Fixtures & styling |
 | 90-100 min | 10 min | BREAK | Informal | None |
 | 100-150 min | 50 min | CAREER WORKSHOP: Resume Building | Career Services | Resume draft |
 
 ## LAUNCH (5 minutes)
 
 ### Hook:
-"Watch me transform this bland component into a polished interface in 30 seconds using just class names - no CSS files needed!"
+"How do you know if your component works with different props, states, and edge cases? Let me show you React Cosmos - it's like Storybook but simpler and perfect for testing components in isolation!"
 
-### Live Transformation Demo (3 min):
+### Live Cosmos Demo (3 min):
 
-**Before (Plain React):**
-```jsx
-<div>
-  <h2>Total Expenses</h2>
-  <p>$1,234.56</p>
-  <button>Add Expense</button>
-</div>
+**Show Component in Isolation:**
+```tsx
+// ExpenseCard.fixture.tsx
+import { ExpenseCard } from './ExpenseCard';
+
+export default {
+  'Default': () => <ExpenseCard expense={mockExpense} />,
+  'High Amount': () => <ExpenseCard expense={{...mockExpense, amount: 999}} />,
+  'Long Description': () => <ExpenseCard expense={{...mockExpense, description: 'Very long...'}} />,
+  'With Actions': () => <ExpenseCard expense={mockExpense} onEdit={console.log} onDelete={console.log} />
+};
 ```
 
-**After (With Tailwind):**
-```jsx
-<div className="bg-white rounded-lg shadow-md p-6">
-  <h2 className="text-2xl font-bold text-gray-800 mb-2">Total Expenses</h2>
-  <p className="text-3xl font-bold text-green-600 mb-4">$1,234.56</p>
-  <button className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">
-    Add Expense
-  </button>
-</div>
+**Benefits Demonstrated:**
+- Test component variations without running full app
+- See all states side-by-side
+- Develop UI components before backend is ready
+- Perfect for team collaboration
+
+### Why Component Testing Matters (2 min):
+- Catch UI bugs early in development
+- Document component behavior visually
+- Speed up development with hot reloading
+- Build reliable component libraries
+
+## LECTURE: Component Isolation with React Cosmos (10 minutes)
+
+### What is React Cosmos? (3 minutes)
+
+**Component Development Platform:**
+- Sandbox for building React components in isolation
+- Visual testing tool for different component states
+- Living documentation of your component library
+- Simpler alternative to Storybook
+
+**Installation & Setup:**
+```bash
+npm install --save-dev react-cosmos
+
+# Add to package.json scripts:
+"cosmos": "cosmos",
+"cosmos:export": "cosmos-export"
 ```
 
-### Why Tailwind Matters (2 min):
-- Used by major companies (GitHub, Netflix, NASA)
-- Faster development with utility classes
-- Consistent design without custom CSS
-- Smaller production bundles with PurgeCSS
+### Creating Fixtures (4 minutes)
 
-## LECTURE: Tailwind Fundamentals (15 minutes)
+**Basic Fixture Structure:**
+```tsx
+// Button.fixture.tsx
+import { Button } from './Button';
 
-### Core Concepts (5 minutes)
+export default {
+  'Primary': () => <Button variant="primary">Click Me</Button>,
+  'Secondary': () => <Button variant="secondary">Cancel</Button>,
+  'Disabled': () => <Button disabled>Disabled</Button>,
+  'Loading': () => <Button loading>Loading...</Button>
+};
+```
 
-**Utility-First Philosophy:**
+**Advanced Fixtures with Props:**
+```tsx
+// ExpenseCard.fixture.tsx
+import { ExpenseCard } from './ExpenseCard';
+import { useValue } from 'react-cosmos/client';
+
+export default () => {
+  const [amount] = useValue('amount', { defaultValue: 50 });
+  const [category] = useValue('category', { 
+    defaultValue: 'Food',
+    options: ['Food', 'Transport', 'Entertainment']
+  });
+  
+  return (
+    <ExpenseCard 
+      expense={{ 
+        id: 1, 
+        amount, 
+        category,
+        description: 'Sample expense'
+      }} 
+    />
+  );
+};
+```
+
+### Benefits for Teams (3 minutes)
+
+**Development Workflow:**
+- Build components before integration
+- Test edge cases visually
+- Share component library with team
+- Document component API through fixtures
+
+## TAILWIND CSS FUNDAMENTALS (10 minutes)
+
+### Utility-First Philosophy (3 minutes)
+
+**Traditional CSS vs Tailwind:**
 ```jsx
 // Traditional CSS approach
 <div className="card">
@@ -109,14 +183,14 @@ By the end of this session, students will be able to:
 </div>
 ```
 
-**Utility Class Categories:**
+**Core Utility Classes:**
 - **Layout:** `flex`, `grid`, `block`, `inline`
 - **Spacing:** `p-4`, `m-2`, `space-x-4`
 - **Typography:** `text-lg`, `font-bold`, `text-center`
 - **Colors:** `bg-blue-500`, `text-gray-700`, `border-red-400`
 - **Effects:** `shadow-md`, `rounded-lg`, `opacity-75`
 
-### Responsive Design (5 minutes)
+### Responsive Design (4 minutes)
 
 **Mobile-First Breakpoints:**
 ```jsx
@@ -127,10 +201,10 @@ By the end of this session, students will be able to:
 </div>
 
 // Breakpoint prefixes:
-// sm: (640px+)  md: (768px+)  lg: (1024px+)  xl: (1280px+)  2xl: (1536px+)
+// sm: (640px+)  md: (768px+)  lg: (1024px+)  xl: (1280px+)
 ```
 
-### State Variants (5 minutes)
+### State Variants (3 minutes)
 
 **Interactive States:**
 ```jsx
@@ -147,19 +221,123 @@ By the end of this session, students will be able to:
 ">
   Click Me
 </button>
-
-// Dark mode support
-<div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-  Adapts to theme
-</div>
 ```
 
-## I DO: Component Styling Demo (15 minutes)
+## I DO: Creating Component Fixtures (10 minutes)
+
+### Step 1: Install and Configure Cosmos:
+
+```bash
+# Install React Cosmos
+npm install --save-dev react-cosmos
+
+# Create cosmos.config.json
+{
+  "staticPath": "public",
+  "watchDirs": ["src"],
+  "userDepsFilePath": "src/cosmos.userdeps.js"
+}
+```
+
+### Step 2: Create Your First Fixture:
+
+```tsx
+// src/components/ExpenseCard.fixture.tsx
+import { ExpenseCard } from './ExpenseCard';
+
+// Simple fixture with multiple states
+export default {
+  'Default': () => (
+    <ExpenseCard 
+      expense={{
+        id: 1,
+        amount: 45.99,
+        category: 'Food',
+        description: 'Lunch at cafe',
+        date: new Date().toISOString()
+      }}
+    />
+  ),
+  
+  'High Amount Warning': () => (
+    <ExpenseCard 
+      expense={{
+        id: 2,
+        amount: 250.00,
+        category: 'Entertainment',
+        description: 'Concert tickets',
+        date: new Date().toISOString()
+      }}
+    />
+  ),
+  
+  'With Actions': () => (
+    <ExpenseCard 
+      expense={{
+        id: 3,
+        amount: 75.50,
+        category: 'Transport',
+        description: 'Monthly metro pass',
+        date: new Date().toISOString()
+      }}
+      onEdit={(exp) => console.log('Edit:', exp)}
+      onDelete={(id) => console.log('Delete:', id)}
+    />
+  )
+};
+
+### Step 3: Interactive Fixtures with Controls:
+
+```tsx
+// Button.fixture.tsx with interactive controls
+import { Button } from './Button';
+import { useValue, useSelect } from 'react-cosmos/client';
+
+export default () => {
+  const [text] = useValue('text', { defaultValue: 'Click Me' });
+  const [variant] = useSelect('variant', {
+    defaultValue: 'primary',
+    options: ['primary', 'secondary', 'danger']
+  });
+  const [size] = useSelect('size', {
+    defaultValue: 'md',
+    options: ['sm', 'md', 'lg']
+  });
+  const [disabled] = useValue('disabled', { defaultValue: false });
+  
+  return (
+    <Button 
+      variant={variant} 
+      size={size} 
+      disabled={disabled}
+      onClick={() => console.log('Button clicked!')}
+    >
+      {text}
+    </Button>
+  );
+};
+```
+
+### Running Cosmos:
+
+```bash
+# Add to package.json scripts
+"scripts": {
+  "cosmos": "cosmos",
+  "cosmos:export": "cosmos-export"
+}
+
+# Run Cosmos
+npm run cosmos
+# Opens at http://localhost:5000
+```
+
+## TAILWIND STYLING DEMO (10 minutes)
 
 ### Transform ExpenseCard with Tailwind:
 
 ```tsx
-// ExpenseCard.tsx with Tailwind
+// ExpenseCard.tsx with full Tailwind styling
 import React from 'react';
 import { Expense } from './types';
 
@@ -319,23 +497,23 @@ const Button: React.FC<ButtonProps> = ({
 };
 ```
 
-## YOU DO: Style Your Components (15 minutes)
+## YOU DO: Create Fixtures & Style Components (15 minutes)
 
 ### Tasks:
-1. **Apply Tailwind to ExpenseForm:**
-   - Style form inputs with Tailwind
-   - Add hover and focus states
-   - Make it responsive
+1. **Create Cosmos Fixtures for Your Components:**
+   - Create ExpenseForm.fixture.tsx with empty, filled, and error states
+   - Create ExpenseList.fixture.tsx with 0, 1, and many items
+   - Test edge cases (long text, large numbers)
 
-2. **Create a Layout Component:**
-   - Header with navigation
-   - Responsive sidebar
-   - Main content area
+2. **Apply Tailwind Styling:**
+   - Style form inputs with hover and focus states
+   - Create responsive grid layout for expense cards
+   - Add loading and empty states with Tailwind
 
-3. **Style the ExpenseList:**
-   - Grid layout for cards
-   - Responsive breakpoints
-   - Loading and empty states
+3. **Combine Cosmos + Tailwind:**
+   - Use fixtures to test responsive breakpoints
+   - Verify dark mode support in Cosmos
+   - Test component accessibility with different states
 
 ### Example Starting Point:
 
@@ -421,9 +599,9 @@ const ExpenseForm = ({ onSubmit }) => {
 
 ## BREAK (10 minutes)
 
-## TEAM PROJECT: Design System Setup (30 minutes)
+## TEAM PROJECT: Component Library with Cosmos & Tailwind (30 minutes)
 
-### Create Team Design Tokens:
+### Part 1: Set Up Cosmos for Team Components:
 
 **tailwind.config.js customization:**
 ```javascript
