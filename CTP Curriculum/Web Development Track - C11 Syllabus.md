@@ -1,4 +1,3 @@
-
 ## Program Overview
 
 This intensive 13-week fellowship prepares computer science students for careers as professional web developers through hands-on experience with modern technologies and industry best practices. Fellows will work in teams to build and deploy a full-stack web application using React, Next.js, TypeScript, and AWS services, while learning agile development methodologies and professional collaboration skills.
@@ -24,14 +23,14 @@ By the end of this program, fellows will be able to:
 
 ### Phase 2: Core Development (Weeks 4-7)
 - **Week 4:** Styling with Tailwind & Career Workshop*
-- **Week 5:** Testing Fundamentals
-- **Week 6:** Introduction to Next.js
+- **Week 5:** Review Week
+- **Week 6:** Introduction to Next.js & Migration from Vite
 - **Week 7:** CI/CD & Static Deployment
 
 ### Phase 3: Full-Stack Integration (Weeks 8-10)
-- **Week 8:** Full-Stack Next.js with AWS Lambda
+- **Week 8:** AWS Services with LocalStack (S3, Lambda, DynamoDB)
 - **Week 9:** Database Integration with PostgreSQL
-- **Week 10:** Advanced Backend & DynamoDB
+- **Week 10:** Advanced Backend & Production AWS
 
 ### Phase 4: Production & Deployment (Weeks 11-13)
 - **Week 11:** Advanced React & Career Workshop*

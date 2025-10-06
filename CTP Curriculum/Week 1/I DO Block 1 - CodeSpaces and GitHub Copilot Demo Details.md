@@ -32,16 +32,19 @@ Learning Target: Demonstrate professional cloud development environment and resp
 - Show pre-installed extensions
 - Demonstrate terminal with pre-configured tools
 - Example: "Notice Node.js, npm, git are all pre-installed with specific versions"
+- **Cloud Connection:** "This is actually cloud development - your code runs in Microsoft's data centers, just like how we'll deploy our apps to AWS"
 
 **No "Works on My Machine" Problems:**
 - Show `.devcontainer/devcontainer.json` file
 - Explain standardized environment configuration
 - Think-aloud: "Every developer gets the exact same setup"
+- **Cloud Parallel:** "Just like S3 ensures everyone sees the same website, CodeSpaces ensures everyone has the same dev environment"
 
 **Instant Onboarding:**
 - Demonstrate opening an existing project
 - Show how extensions and settings persist
 - Example: "A new team member can be coding in 5 minutes, not 5 days"
+- **Deployment Preview:** "Later we'll deploy to AWS S3 - same concept, making resources available anywhere"
 
 #### 4. Customization Options (2 min)
 - Show VS Code settings sync

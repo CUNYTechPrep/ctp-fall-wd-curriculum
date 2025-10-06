@@ -67,7 +67,7 @@ By the end of this session, students will be able to:
 ## LAUNCH (10 minutes)
 
 ### Hook:
-"Today you become React developers! By the end of this session, you'll build interactive components and form teams around projects you're passionate about. React powers Facebook, Netflix, Airbnb, and countless other applications - and now it will power yours."
+"Today you become React developers! By the end of this session, you'll build interactive components and form teams around projects you're passionate about. React powers Facebook, Netflix, Airbnb, and countless other applications - and now it will power yours. These React apps are deployed to cloud services like AWS S3, serving millions of users globally - which is exactly where your projects will end up!"
 
 ### React Mental Model Activity:
 
@@ -378,6 +378,8 @@ export default ExpenseList;
 - "This component structure is how we build at scale"
 - "Props make components reusable across your app"
 - "Separation of concerns - each component has one job"
+- "When we deploy to S3 in Week 5, all these components become static files served globally"
+- "React's build process optimizes everything for cloud deployment"
 
 ## YOU DO BLOCK 1: First Components (15 minutes)
 

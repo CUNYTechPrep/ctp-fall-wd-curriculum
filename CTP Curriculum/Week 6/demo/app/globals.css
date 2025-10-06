@@ -1,0 +1,11 @@
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0 2rem;
+}
+nav {
+  margin: 1rem 0;
+}
+main {
+  min-height: 80vh;
+}

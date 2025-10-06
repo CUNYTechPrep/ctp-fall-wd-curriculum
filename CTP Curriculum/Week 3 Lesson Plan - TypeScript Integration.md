@@ -48,6 +48,7 @@ By the end of this session, students will be able to:
 - **IDE features:** TypeScript IntelliSense enabled
 - **Team tools:** Shared type definition files structure
 - **Resources:** TypeScript playground, React TypeScript CheatSheet
+- **Cloud prep:** Type definitions for AWS SDK and deployment configs
 
 ## SESSION TIMELINE
 
