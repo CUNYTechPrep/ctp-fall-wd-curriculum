@@ -771,22 +771,6 @@ export default function NewTodoPage() {
 
 ---
 
-## Deployment Options
-
-**Vercel (Easiest):**
-```bash
-npm install -g vercel
-vercel
-```
-
-**Other Options:**
-- Docker + any cloud provider
-- Netlify
-- AWS (ECS, Lambda)
-- Self-hosted with Node.js
-
----
-
 ## Resources
 
 - [Next.js Docs](https://nextjs.org/docs)
@@ -794,22 +778,6 @@ vercel
 - [Learn Next.js](https://nextjs.org/learn)
 - [Next.js Examples](https://github.com/vercel/next.js/tree/canary/examples)
 - [Migration Guide](https://nextjs.org/docs/app/building-your-application/upgrading/from-vite)
-
----
-
-## Assignment: Migrate Your Expense Tracker
-
-**Requirements:**
-1. Create new Next.js project
-2. Migrate all pages from Vite version
-3. Convert routes to file-based routing
-4. Add `'use client'` where needed
-5. (Optional) Move API logic to Next.js API routes
-6. Test all functionality
-
-**Due:** Before Week 7
-
-**Bonus:** Deploy to Vercel!
 
 ---
 
