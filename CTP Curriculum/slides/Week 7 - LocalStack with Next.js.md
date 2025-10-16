@@ -104,7 +104,6 @@ docker run -d -p 4566:4566 localstack/localstack
 Better for development - use `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
 services:
   localstack:
     image: localstack/localstack

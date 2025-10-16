@@ -116,6 +116,7 @@ npx create-next-app@latest my-app
 ✓ Would you like to use ESLint? Yes
 ✓ Would you like to use Tailwind CSS? No (for now)
 ✓ Would you like to use `src/` directory? No
+Do you want to use TurboPack
 ✓ Would you like to use App Router? Yes ← IMPORTANT!
 ✓ Would you like to customize the default import alias? No
 
@@ -508,6 +509,7 @@ function Counter() {
 
 **Next.js:**
 ```
+components/
 app/
 ├── page.tsx           # Home (/)
 ├── about/

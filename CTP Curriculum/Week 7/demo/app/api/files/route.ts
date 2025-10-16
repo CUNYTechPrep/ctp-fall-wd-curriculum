@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import { ListObjectsV2Command } from '@aws-sdk/client-s3'
-import { s3Client, BUCKET_NAME } from '@/lib/s3'
+import { s3Client, BUCKET_NAME, createBucketIfNotExists } from '@/lib/s3'
 
 export async function GET() {
   try {
+    await createBucketIfNotExists()
+
     const command = new ListObjectsV2Command({
       Bucket: BUCKET_NAME
     })

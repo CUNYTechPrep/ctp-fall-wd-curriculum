@@ -1,4 +1,4 @@
-I## Program Overview
+## Program Overview
 
 This intensive 13-week fellowship prepares computer science students for careers as professional web developers through hands-on experience with modern technologies and industry best practices. Fellows will work in teams to build and deploy a full-stack web application using React, Next.js, TypeScript, and AWS services, while learning agile development methodologies and professional collaboration skills.
 
@@ -28,9 +28,90 @@ By the end of this program, fellows will be able to:
 - **Week 7:** CI/CD & Static Deployment
 
 ### Phase 3: Full-Stack Integration (Weeks 8-10)
-- **Week 8:** AWS Services with LocalStack (S3, Lambda, DynamoDB)
-- **Week 9:** Database Integration with PostgreSQL
-- **Week 10:** Advanced Backend & Production AWS
+
+- **Week 8:** Authentication & NoSQL with Cognito and DynamoDB  
+  **Building on Week 7's LocalStack foundation**
+  
+  **Learning Objectives:**  
+  - Add Cognito and DynamoDB to LocalStack setup  
+  - Implement user authentication with Cognito (sign up, sign in, sign out)  
+  - Understand JWT tokens and session management  
+  - Implement authorization (protected routes and API endpoints)  
+  - Model data in DynamoDB with DynamoDB Toolbox  
+  - Build user-specific features with NoSQL  
+  - Secure Next.js API routes with authentication  
+  - Manage user state across the application  
+
+  **Topics Covered:**  
+  - Cognito User Pools and App Clients  
+  - Sign up/sign in flows with email and password  
+  - JWT tokens: access, ID, and refresh tokens  
+  - Protecting API routes with authentication middleware  
+  - Authorization patterns (user-owned resources)  
+  - DynamoDB: partition keys, sort keys, access patterns  
+  - DynamoDB Toolbox for TypeScript support  
+  - NoSQL data modeling best practices  
+  - When to use NoSQL vs SQL (preview of Week 9)  
+
+  **Activities:**  
+  - Extend Week 7 LocalStack with Cognito and DynamoDB  
+  - Build complete authentication system  
+  - Create user preferences in DynamoDB  
+  - Implement protected dashboard  
+  - Store user-specific data with proper authorization  
+  - Build authentication context for React  
+
+  **Deliverables:**  
+  - Next.js app with Cognito authentication  
+  - Sign up, sign in, sign out flows working  
+  - Protected routes and API endpoints  
+  - DynamoDB tables for user data (preferences, settings)  
+  - User-specific features (dashboard, profile)  
+  - Documentation of authentication flow  
+
+- **Week 9:** Database Integration with PostgreSQL  
+  **Adding relational database to the stack**
+  
+  **Topics:**  
+  - PostgreSQL/RDS with Drizzle ORM  
+  - Schema design and migrations  
+  - Complex queries and relationships  
+  - SQL vs NoSQL comparison  
+  - Integrating with Week 8's authentication  
+
+  **Activities:**  
+  - Set up PostgreSQL database in LocalStack  
+  - Define schemas and relationships with Drizzle ORM  
+  - Implement data seeding and migration scripts  
+  - Build API routes for database interactions  
+  - Integrate database with authentication system  
+
+  **Deliverables:**  
+  - PostgreSQL database setup and migration scripts  
+  - API routes for CRUD operations  
+  - Integration of database with Next.js app  
+  - Documentation of database design and API  
+
+- **Week 10:** Final Integrations and Testing  
+  **Polishing the application**
+  
+  **Topics:**  
+  - Integrating frontend and backend components  
+  - End-to-end testing strategies  
+  - Performance optimization techniques  
+  - Security best practices (OWASP Top Ten)  
+  - Preparing for production deployment  
+
+  **Activities:**  
+  - Conduct end-to-end testing of the application  
+  - Optimize performance (database queries, API responses)  
+  - Review security settings and implement best practices  
+  - Prepare deployment scripts and configurations  
+
+  **Deliverables:**  
+  - Fully integrated and tested application  
+  - Performance and security audit report  
+  - Deployment plan and scripts  
 
 ### Phase 4: Production & Deployment (Weeks 11-13)
 - **Week 11:** Advanced React & Career Workshop*

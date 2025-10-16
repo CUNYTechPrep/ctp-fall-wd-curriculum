@@ -1,11 +1,10 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useExpenses } from '../../hooks/useExpenses'
+import { useExpenses } from '@/app/hooks/useExpenses'
 import { useState } from 'react'
 
-export default function ExpenseDetailPage() {
-  const params = useParams()
+export default function ExpenseDetailPage({{ params }: { params: { id: string } }) {
   const router = useRouter()
   const { getExpense, updateExpense, deleteExpense } = useExpenses()
   
