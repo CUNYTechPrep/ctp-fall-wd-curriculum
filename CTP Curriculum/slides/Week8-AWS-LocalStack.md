@@ -194,15 +194,17 @@ USER_POOL_ID=$(aws --endpoint-url=http://localhost:4566 \
   --pool-name ExpenseTrackerUserPool \
   --policies "PasswordPolicy={MinimumLength=8,RequireUppercase=true,RequireLowercase=true,RequireNumbers=true}" \
   --auto-verified-attributes email \
-  --query 'UserPool.Id' --output text)
-
-# Create app client
+  --query 'UserPool.Id' --output text) \
+\ 
+# Create app client \
 CLIENT_ID=$(aws --endpoint-url=http://localhost:4566 \
   cognito-idp create-user-pool-client \
   --user-pool-id $USER_POOL_ID \
   --client-name ExpenseTrackerClient \
   --explicit-auth-flows ALLOW_USER_PASSWORD_AUTH ALLOW_REFRESH_TOKEN_AUTH \
-  --query 'UserPoolClient.ClientId' --output text)
+  --query 'UserPoolClient.ClientId' --output text) \
+
+npm run dev
 ```
 
 ---

@@ -15,7 +15,6 @@ export const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'demo-uploads'
 
 export async function createBucketIfNotExists() {
   try {
-    
     await s3Client.send(new HeadBucketCommand({ Bucket: BUCKET_NAME }))
   } catch (error: any) {
     if (error.name === 'NotFound') {
