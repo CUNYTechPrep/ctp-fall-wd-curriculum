@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/middleware'
 import { uploadToS3 } from '@/lib/s3/client'
-import { UserSetting } from '@/lib/dynamodb/entities'
+import { UserSetting } from '@/lib/db/entities'
 
 /**
  * POST /api/upload - Upload profile photo

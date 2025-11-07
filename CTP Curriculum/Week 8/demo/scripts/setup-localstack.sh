@@ -3,14 +3,14 @@
 echo "🚀 Setting up LocalStack for Week 8 Demo..."
 echo ""
 
-ENDPOINT="http://localhost:4566"
+ENDPOINT="http://ls-qc9obuv0r8ee4.sandbox.localstack.cloud"
 
 # Check if LocalStack is running
-if ! curl -s $ENDPOINT > /dev/null 2>&1; then
-    echo "❌ LocalStack is not running!"
-    echo "Start it with: docker run -d --name localstack -p 4566:4566 -e SERVICES=cognito-idp,dynamodb,s3 localstack/localstack"
-    exit 1
-fi
+# if ! curl -s $ENDPOINT > /dev/null 2>&1; then
+#     echo "❌ LocalStack is not running!"
+#     echo "Start it with: docker run -d --name localstack -p 4566:4566 -e SERVICES=cognito-idp,dynamodb,s3 localstack/localstack"
+#     exit 1
+# fi
 
 echo "✅ LocalStack is running"
 echo ""

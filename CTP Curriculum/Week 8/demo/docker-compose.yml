@@ -1,0 +1,13 @@
+services:
+  localstack:
+    image: localstack/localstack-pro:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+      - DATA_DIR=/localstack/data
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN}
+    volumes:
+      - "./localstack:/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
