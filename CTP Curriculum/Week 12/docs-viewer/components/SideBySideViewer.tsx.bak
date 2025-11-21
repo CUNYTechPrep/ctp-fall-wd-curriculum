@@ -1,0 +1,429 @@
+/**
+ * SideBySideViewer - Comments Follow Code Scrolling
+ *
+ * As you scroll through code in Monaco, the comment panel shows
+ * the documentation for the visible code section.
+ */
+
+'use client'
+
+import { Editor } from '@monaco-editor/react'
+import { useState, useEffect, useRef } from 'react'
+import type { editor } from 'monaco-editor'
+import { formatCommentAsHTML, type CodeSection } from '@/lib/parseCode'
+
+interface SideBySideViewerProps {
+  sections: CodeSection[]
+  codeWithoutComments: string
+  filename: string
+  language: string
+  project: string  // Added for type loading
+}
+
+const MONACO_THEMES = [
+  { id: 'vs-dark', name: 'Dark', pageClass: 'dark' },
+  { id: 'vs', name: 'Light', pageClass: 'light' },
+  { id: 'hc-black', name: 'High Contrast Dark', pageClass: 'dark' },
+  { id: 'hc-light', name: 'High Contrast Light', pageClass: 'light' },
+]
+
+export default function SideBySideViewer({
+  sections,
+  codeWithoutComments,
+  filename,
+  language,
+  project
+}: SideBySideViewerProps) {
+  const [theme, setTheme] = useState('vs-dark')
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+
+  // Debug: Log sections on mount
+  useEffect(() => {
+    console.log('Sections:', sections.length)
+    sections.forEach((s, i) => {
+      console.log(`Section ${i}: Lines ${s.startLine}-${s.endLine}, Comment: ${s.comment ? s.comment.substring(0, 50) + '...' : 'NO COMMENT'}`)
+    })
+  }, [])
+
+  // Load theme
+  useEffect(() => {
+    const saved = localStorage.getItem('monaco-theme')
+    if (saved) setTheme(saved)
+  }, [])
+
+  // Trigger Prism syntax highlighting when comment changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).Prism) {
+      (window as any).Prism.highlightAll()
+    }
+  }, [currentSectionIndex])
+
+  // Re-enable semantic validation so Monaco makes type requests
+  // Service worker will intercept and serve them
+  useEffect(() => {
+    const monaco = (window as any).monaco
+    if (!monaco) return
+
+    console.log('Configuring Monaco for', project)
+
+    // Enable type checking so Monaco requests types
+    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: false,  // Enable to trigger type requests
+      noSyntaxValidation: false,
+    })
+
+    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+      target: monaco.languages.typescript.ScriptTarget.ES2020,
+      allowNonTsExtensions: true,
+      moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+      module: monaco.languages.typescript.ModuleKind.ESNext,
+      noEmit: true,
+      esModuleInterop: true,
+      jsx: monaco.languages.typescript.JsxEmit.React,
+      allowJs: true,
+      skipLibCheck: true,
+    })
+
+    console.log('✅ Monaco configured - semantic validation enabled')
+    console.log('Service worker should intercept type requests')
+  }, [project])
+
+  // Apply theme to page
+  useEffect(() => {
+    const themeConfig = MONACO_THEMES.find(t => t.id === theme)
+    if (themeConfig) {
+      if (themeConfig.pageClass === 'dark') {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    }
+  }, [theme])
+
+  function handleEditorMount(editor: editor.IStandaloneCodeEditor, monaco: any) {
+    editorRef.current = editor
+
+    // Load type definitions for IntelliSense
+    fetch(`/types/${filename.split('/')[0]}.d.ts`)
+      .then(r => r.text())
+      .then(types => {
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(
+          types,
+          `file:///types/project.d.ts`
+        )
+
+        // Configure TypeScript compiler
+        monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+          target: monaco.languages.typescript.ScriptTarget.ES2020,
+          allowNonTsExtensions: true,
+          moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+          module: monaco.languages.typescript.ModuleKind.ESNext,
+          noEmit: true,
+          esModuleInterop: true,
+          jsx: monaco.languages.typescript.JsxEmit.React,
+          allowJs: true,
+        })
+      })
+      .catch(() => {
+        // Types optional - editor works without them
+      })
+
+    // Update comment when cursor position changes
+    editor.onDidChangeCursorPosition((e) => {
+      const cursorLine = e.position.lineNumber
+
+      // Find section containing this line (use clean code line numbers!)
+      const sectionIndex = sections.findIndex(
+        s => cursorLine >= s.startLineInCleanCode && cursorLine <= s.endLineInCleanCode
+      )
+
+      if (sectionIndex !== -1 && sectionIndex !== currentSectionIndex) {
+        setCurrentSectionIndex(sectionIndex)
+
+        // Update URL hash with original line number for sharing
+        const section = sections[sectionIndex]
+        if (section) {
+          window.history.replaceState(null, '', `#L${section.startLine}`)
+        }
+      }
+    })
+
+    // Handle URL hash for line highlighting
+    const hash = window.location.hash
+    if (hash) {
+      const match = hash.match(/#L(\d+)(-L(\d+))?/)
+      if (match) {
+        const startLine = parseInt(match[1])
+        const endLine = match[3] ? parseInt(match[3]) : startLine
+
+        setTimeout(() => {
+          editor.revealLineInCenter(startLine)
+          editor.setSelection({
+            startLineNumber: startLine,
+            startColumn: 1,
+            endLineNumber: endLine,
+            endColumn: 1000,
+          })
+        }, 100)
+      }
+    }
+  }
+
+  // Jump to section when comment is clicked
+  function jumpToSection(sectionIndex: number) {
+    if (!editorRef.current) return
+
+    const section = sections[sectionIndex]
+    if (section) {
+      // Use clean code line numbers for Monaco
+      editorRef.current.revealLineInCenter(section.startLineInCleanCode)
+      editorRef.current.setSelection({
+        startLineNumber: section.startLineInCleanCode,
+        startColumn: 1,
+        endLineNumber: section.endLineInCleanCode,
+        endColumn: 1000,
+      })
+      setCurrentSectionIndex(sectionIndex)
+    }
+  }
+
+  function handleThemeChange(newTheme: string) {
+    setTheme(newTheme)
+    localStorage.setItem('monaco-theme', newTheme)
+  }
+
+  const currentTheme = MONACO_THEMES.find(t => t.id === theme)
+  const currentSection = sections[currentSectionIndex]
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className={`border-b p-3 flex items-center justify-between ${
+        currentTheme?.pageClass === 'dark'
+          ? 'bg-[#1e1e1e] border-gray-700'
+          : 'bg-gray-100 border-gray-300'
+      }`}>
+        <div className={`text-sm font-mono ${
+          currentTheme?.pageClass === 'dark' ? 'text-gray-300' : 'text-gray-700'
+        }`}>
+          {filename}
+          {currentSection && (
+            <span className="ml-4 text-xs opacity-75">
+              Lines {currentSection.startLine}-{currentSection.endLine}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={`text-xs ${
+            currentTheme?.pageClass === 'dark' ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Theme:
+          </span>
+          <select
+            value={theme}
+            onChange={(e) => handleThemeChange(e.target.value)}
+            className={`text-xs px-3 py-1.5 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              currentTheme?.pageClass === 'dark'
+                ? 'bg-[#2d2d2d] text-gray-300 border-gray-600'
+                : 'bg-white text-gray-700 border-gray-300'
+            }`}
+          >
+            {MONACO_THEMES.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Side-by-Side Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Comments Panel - Shows Current Section */}
+        <div className={`w-1/2 flex flex-col border-r ${
+          currentTheme?.pageClass === 'dark'
+            ? 'bg-gray-900 border-gray-700'
+            : 'bg-gray-50 border-gray-300'
+        }`}>
+          {/* Section Navigator */}
+          <div className={`border-b p-3 ${
+            currentTheme?.pageClass === 'dark'
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <span className={`text-sm font-medium ${
+                currentTheme?.pageClass === 'dark' ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Section {currentSectionIndex + 1} of {sections.length}
+              </span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => jumpToSection(Math.max(0, currentSectionIndex - 1))}
+                  disabled={currentSectionIndex === 0}
+                  className={`px-3 py-1 text-xs rounded transition ${
+                    currentTheme?.pageClass === 'dark'
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50'
+                  }`}
+                >
+                  ← Prev
+                </button>
+                <button
+                  onClick={() => jumpToSection(Math.min(sections.length - 1, currentSectionIndex + 1))}
+                  disabled={currentSectionIndex === sections.length - 1}
+                  className={`px-3 py-1 text-xs rounded transition ${
+                    currentTheme?.pageClass === 'dark'
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50'
+                  }`}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Comments with Context */}
+          <div className={`flex-1 overflow-y-auto p-6 transition-colors ${
+            currentTheme?.pageClass === 'dark' ? 'bg-gray-900' : 'bg-gray-50'
+          }`}>
+            {sections.length === 0 ? (
+              <div className={`italic ${
+                currentTheme?.pageClass === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                No documentation comments in this file.
+                <br /><br />
+                Add inline comments to see them here!
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Previous Section (Collapsed) */}
+                {currentSectionIndex > 0 && sections[currentSectionIndex - 1]?.comment && (
+                  <div
+                    onClick={() => jumpToSection(currentSectionIndex - 1)}
+                    className={`rounded-lg p-4 border cursor-pointer transition-all hover:opacity-100 ${
+                      currentTheme?.pageClass === 'dark'
+                        ? 'bg-gray-800/30 border-gray-700 opacity-50'
+                        : 'bg-white/50 border-gray-300 opacity-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`text-xs font-mono ${
+                        currentTheme?.pageClass === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                      }`}>
+                        ↑ Previous Section
+                      </div>
+                      <div className={`text-xs ${
+                        currentTheme?.pageClass === 'dark' ? 'text-gray-600' : 'text-gray-400'
+                      }`}>
+                        Lines {sections[currentSectionIndex - 1].startLine}-{sections[currentSectionIndex - 1].endLine}
+                      </div>
+                    </div>
+                    <div className={`text-sm line-clamp-2 ${
+                      currentTheme?.pageClass === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
+                      {sections[currentSectionIndex - 1].comment.replace(/^REF:\s*[\w-]+\s*\n?/, '').substring(0, 100)}...
+                    </div>
+                  </div>
+                )}
+
+                {/* Current Section (Full) */}
+                <div className={`text-xs mb-2 ${
+                  currentTheme?.pageClass === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  Section {currentSectionIndex + 1}/{sections.length} •
+                  Lines {currentSection?.startLine}-{currentSection?.endLine}
+                </div>
+
+                {currentSection?.comment ? (
+                  <div className={`rounded-lg p-6 shadow-lg border-2 ${
+                    currentTheme?.pageClass === 'dark'
+                      ? 'bg-gray-800 border-blue-500 text-gray-100'
+                      : 'bg-white border-blue-400 text-gray-900'
+                  }`}>
+                    <div
+                      className={currentTheme?.pageClass === 'dark' ? 'dark' : ''}
+                      dangerouslySetInnerHTML={{ __html: formatCommentAsHTML(currentSection.comment) }}
+                    />
+                  </div>
+                ) : (
+                  <div className={`italic ${
+                    currentTheme?.pageClass === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    No comment for this code section.
+                  </div>
+                )}
+
+                {/* Next Section (Collapsed) */}
+                {currentSectionIndex < sections.length - 1 && sections[currentSectionIndex + 1]?.comment && (
+                  <div
+                    onClick={() => jumpToSection(currentSectionIndex + 1)}
+                    className={`rounded-lg p-4 border cursor-pointer transition-all hover:opacity-100 ${
+                      currentTheme?.pageClass === 'dark'
+                        ? 'bg-gray-800/30 border-gray-700 opacity-50'
+                        : 'bg-white/50 border-gray-300 opacity-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`text-xs font-mono ${
+                        currentTheme?.pageClass === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                      }`}>
+                        ↓ Next Section
+                      </div>
+                      <div className={`text-xs ${
+                        currentTheme?.pageClass === 'dark' ? 'text-gray-600' : 'text-gray-400'
+                      }`}>
+                        Lines {sections[currentSectionIndex + 1].startLine}-{sections[currentSectionIndex + 1].endLine}
+                      </div>
+                    </div>
+                    <div className={`text-sm line-clamp-2 ${
+                      currentTheme?.pageClass === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
+                      {sections[currentSectionIndex + 1].comment.replace(/^REF:\s*[\w-]+\s*\n?/, '').substring(0, 100)}...
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Code Panel - Monaco Editor */}
+        <div className="w-1/2">
+          <Editor
+            height="100%"
+            language={language}
+            value={codeWithoutComments}
+            theme={theme}
+            onMount={handleEditorMount}
+            options={{
+              readOnly: true,
+              minimap: { enabled: true },
+              fontSize: 14,
+              lineHeight: 19,
+              lineNumbers: 'on',
+              scrollBeyondLastLine: false,
+              wordWrap: 'on',
+              automaticLayout: true,
+              folding: true,
+              links: true,
+              renderWhitespace: 'selection',
+              scrollbar: {
+                vertical: 'visible',
+                horizontal: 'visible',
+              },
+            }}
+            loading={
+              <div className="flex items-center justify-center h-full bg-[#1e1e1e] text-gray-400">
+                <div className="text-center">
+                  <div>Loading Monaco Editor...</div>
+                  <div className="text-sm opacity-75 mt-2">TypeScript support initializing...</div>
+                </div>
+              </div>
+            }
+          />
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,549 @@
+/**
+ * REF: globals-css-file
+ *
+ * # Global Styles
+ *
+ * Main stylesheet for the Next.js Firebase Todo application.
+ *
+ * ## What This File Contains
+ *
+ * | Section | Purpose |
+ * |---------|---------|
+ * | Tailwind Directives | Import Tailwind's base, components, and utilities |
+ * | CSS Variables | Define color tokens for theming |
+ * | Dark Mode | Automatic dark mode using system preferences |
+ * | Body Styles | Global background and text color |
+ * | Custom Utilities | Additional utility classes |
+ * | Accessibility | Utilities for accessibility preferences |
+ *
+ * ## How This File Works
+ *
+ * 1. **Imported in app/layout.tsx** - Loaded globally for entire app
+ * 2. **Processed by PostCSS** - Tailwind and Autoprefixer transform it
+ * 3. **Bundled by Next.js** - Optimized and included in app bundle
+ * 4. **Applied to all pages** - Styles available everywhere
+ */
+// CLOSE: globals-css-file
+
+/**
+ * REF: tailwind-directives
+ *
+ * # Tailwind CSS Directives
+ *
+ * Import Tailwind's pre-built styles into the application.
+ *
+ * ## The Three Directives
+ *
+ * ### @tailwind base
+ *
+ * Injects Tailwind's base styles including:
+ * - Modern CSS reset (based on normalize.css)
+ * - Removal of default margins and padding
+ * - Consistent box-sizing across elements
+ * - Better default font rendering
+ *
+ * **What it does:**
+ * ```css
+ * * {
+ *   box-sizing: border-box;
+ *   border-width: 0;
+ *   border-style: solid;
+ * }
+ *
+ * body {
+ *   margin: 0;
+ *   line-height: inherit;
+ * }
+ * ```
+ *
+ * ### @tailwind components
+ *
+ * Injects component classes that you can customize:
+ * - Container classes
+ * - Form styles (if using Tailwind forms plugin)
+ * - Custom component classes you define
+ *
+ * **Example usage:**
+ * ```css
+ * @layer components {
+ *   .btn-primary {
+ *     @apply bg-blue-500 text-white px-4 py-2 rounded;
+ *   }
+ * }
+ * ```
+ *
+ * ### @tailwind utilities
+ *
+ * Injects all of Tailwind's utility classes:
+ * - Layout: flex, grid, block, etc.
+ * - Spacing: m-4, p-2, gap-3, etc.
+ * - Typography: text-lg, font-bold, etc.
+ * - Colors: bg-blue-500, text-red-600, etc.
+ * - And thousands more...
+ *
+ * ## Processing Order
+ *
+ * 1. PostCSS reads this file
+ * 2. Tailwind plugin sees `@tailwind` directives
+ * 3. Replaces them with actual CSS
+ * 4. In production, only used classes are included
+ *
+ * ## Why This Order?
+ *
+ * - **base** first: Reset browser defaults
+ * - **components** second: Define reusable components
+ * - **utilities** last: Can override everything else
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+// CLOSE: tailwind-directives
+
+/**
+ * REF: css-variables-root
+ *
+ * # CSS Custom Properties (Variables)
+ *
+ * Define CSS variables for theming and reusability.
+ *
+ * ## What are CSS Variables?
+ *
+ * CSS variables (custom properties) allow you to store values and reuse them:
+ *
+ * ```css
+ * :root {
+ *   --primary-color: #3b82f6;
+ * }
+ *
+ * .button {
+ *   background-color: var(--primary-color);
+ * }
+ * ```
+ *
+ * ## :root Selector
+ *
+ * - `:root` is the highest-level element (same as `<html>`)
+ * - Variables defined here are available globally
+ * - Can be accessed from any component
+ *
+ * ## RGB Format
+ *
+ * Variables store RGB values as comma-separated numbers:
+ * - `--foreground-rgb: 0, 0, 0` = Black
+ * - Can be used with `rgb()` or `rgba()` functions
+ *
+ * **Why RGB instead of hex?**
+ * - Allows adding alpha (transparency) easily
+ * - `rgba(var(--foreground-rgb), 0.5)` = Semi-transparent
+ *
+ * ## Light Mode Colors (Default)
+ *
+ * | Variable | RGB Values | Color | Usage |
+ * |----------|------------|-------|-------|
+ * | --foreground-rgb | 0, 0, 0 | Black | Text color |
+ * | --background-start-rgb | 214, 219, 220 | Light gray | Gradient start |
+ * | --background-end-rgb | 255, 255, 255 | White | Gradient end |
+ */
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+// CLOSE: css-variables-root
+
+/**
+ * REF: dark-mode-media-query
+ *
+ * # Automatic Dark Mode
+ *
+ * Respond to system-level dark mode preferences.
+ *
+ * ## prefers-color-scheme Media Query
+ *
+ * Modern CSS media query that detects user's color scheme preference:
+ * - Set in operating system settings
+ * - Automatically detected by browser
+ * - No JavaScript required
+ *
+ * ## How It Works
+ *
+ * 1. **User sets dark mode** in OS settings
+ * 2. **Browser detects** the preference
+ * 3. **CSS applies** dark mode styles automatically
+ * 4. **Variables update** to dark theme values
+ *
+ * ## Dark Mode Colors
+ *
+ * | Variable | RGB Values | Color | Usage |
+ * |----------|------------|-------|-------|
+ * | --foreground-rgb | 255, 255, 255 | White | Text color (inverted) |
+ * | --background-start-rgb | 0, 0, 0 | Black | Gradient start (inverted) |
+ * | --background-end-rgb | 0, 0, 0 | Black | Gradient end (inverted) |
+ *
+ * ## Testing Dark Mode
+ *
+ * **In Browser DevTools:**
+ * 1. Open DevTools (F12)
+ * 2. Open Command Menu (Ctrl+Shift+P / Cmd+Shift+P)
+ * 3. Type "Rendering"
+ * 4. Find "Emulate CSS media feature prefers-color-scheme"
+ * 5. Select "dark"
+ *
+ * **In Operating System:**
+ * - **macOS**: System Preferences → General → Appearance → Dark
+ * - **Windows**: Settings → Personalization → Colors → Dark
+ * - **Linux**: Varies by desktop environment
+ *
+ * ## Benefits of System Preference
+ *
+ * - **Automatic**: Works without user interaction in app
+ * - **Consistent**: Matches OS and other apps
+ * - **Accessible**: Respects user's visual preferences
+ * - **No state**: No need to store preference in database
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+// CLOSE: dark-mode-media-query
+
+/**
+ * REF: body-styles
+ *
+ * # Body Element Styles
+ *
+ * Global styles applied to the <body> element.
+ *
+ * ## Text Color
+ *
+ * ```css
+ * color: rgb(var(--foreground-rgb));
+ * ```
+ *
+ * - Uses the CSS variable defined above
+ * - Automatically changes in dark mode
+ * - `rgb()` function converts comma-separated values to color
+ *
+ * ## Background Gradient
+ *
+ * Creates a subtle gradient background:
+ *
+ * ```css
+ * background: linear-gradient(
+ *   to bottom,
+ *   transparent,
+ *   rgb(var(--background-end-rgb))
+ * ) rgb(var(--background-start-rgb));
+ * ```
+ *
+ * ### How This Gradient Works
+ *
+ * 1. **Base color**: `rgb(var(--background-start-rgb))` - Light gray (or black in dark mode)
+ * 2. **Gradient overlay**: `linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb)))`
+ *    - Starts transparent at top
+ *    - Fades to white (or black in dark mode) at bottom
+ * 3. **Result**: Subtle top-to-bottom fade
+ *
+ * ### Visual Effect
+ *
+ * **Light mode:**
+ * ```
+ * Top:    Light gray (transparent gradient)
+ *         ↓
+ * Bottom: White (opaque gradient)
+ * ```
+ *
+ * **Dark mode:**
+ * ```
+ * Top:    Black (transparent gradient)
+ *         ↓
+ * Bottom: Black (opaque gradient)
+ * ```
+ *
+ * ## Why Two Background Values?
+ *
+ * CSS allows layering backgrounds:
+ * - **First value** (`linear-gradient`): Top layer
+ * - **Second value** (`rgb(...)`): Fallback/base layer
+ *
+ * If gradient isn't supported, solid color shows instead.
+ */
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+// CLOSE: body-styles
+
+/**
+ * REF: custom-utility-layer
+ *
+ * # Custom Tailwind Utilities
+ *
+ * Define custom utility classes within Tailwind's utility layer.
+ *
+ * ## @layer utilities
+ *
+ * The `@layer` directive tells Tailwind where to inject this code:
+ * - Ensures proper CSS specificity
+ * - Utilities can be overridden by variants
+ * - Can be purged in production if unused
+ *
+ * ## Why Use @layer?
+ *
+ * **Without @layer:**
+ * ```css
+ * .text-balance {
+ *   text-wrap: balance;
+ * }
+ * ```
+ * - May have wrong specificity
+ * - Can't use with variants like `hover:text-balance`
+ * - Not purged automatically
+ *
+ * **With @layer:**
+ * ```css
+ * @layer utilities {
+ *   .text-balance {
+ *     text-wrap: balance;
+ *   }
+ * }
+ * ```
+ * - Correct specificity
+ * - Works with variants: `hover:text-balance`, `md:text-balance`
+ * - Automatically purged if unused
+ *
+ * ## text-balance Utility
+ *
+ * The `text-wrap: balance` CSS property:
+ * - Balances text across multiple lines
+ * - Makes paragraphs look better
+ * - Prevents orphaned words
+ *
+ * **Without balance:**
+ * ```
+ * This is a long heading that wraps to the next
+ * line
+ * ```
+ *
+ * **With balance:**
+ * ```
+ * This is a long heading that
+ * wraps to the next line
+ * ```
+ *
+ * **Usage:**
+ * ```tsx
+ * <h1 className="text-balance">
+ *   This heading will have balanced text
+ * </h1>
+ * ```
+ *
+ * ## Browser Support
+ *
+ * - Chrome 114+
+ * - Edge 114+
+ * - Safari 17.5+
+ * - Firefox: Not yet supported
+ * - Gracefully degrades (ignored if not supported)
+ */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+// CLOSE: custom-utility-layer
+
+/**
+ * REF: accessibility-utilities
+ *
+ * # Accessibility Utility Classes
+ *
+ * Custom classes for accessibility preferences and settings.
+ *
+ * ## Reduced Motion
+ *
+ * For users who prefer reduced motion (vestibular disorders, motion sensitivity).
+ *
+ * ```css
+ * .reduced-motion {
+ *   animation: none !important;
+ *   transition: none !important;
+ * }
+ * ```
+ *
+ * ### When to Use
+ *
+ * Apply when user has enabled "Reduce Motion" in OS settings:
+ *
+ * ```tsx
+ * function Component() {
+ *   const prefersReducedMotion = window.matchMedia(
+ *     '(prefers-reduced-motion: reduce)'
+ *   ).matches
+ *
+ *   return (
+ *     <div className={prefersReducedMotion ? 'reduced-motion' : ''}>
+ *       {/ * Content * /}
+ *     </div>
+ *   )
+ * }
+ * ```
+ *
+ * ### What It Disables
+ *
+ * - **Animations**: All CSS animations stopped
+ * - **Transitions**: All smooth transitions removed
+ * - **!important**: Overrides other animation rules
+ *
+ * ### Why This Matters
+ *
+ * - **Accessibility**: Some users get motion sick from animations
+ * - **WCAG Guideline**: Meets WCAG 2.1 Success Criterion 2.3.3
+ * - **User preference**: Respects system-level settings
+ *
+ * ## High Contrast
+ *
+ * For users with low vision or color blindness.
+ *
+ * ```css
+ * .high-contrast {
+ *   filter: contrast(1.5);
+ * }
+ * ```
+ *
+ * ### Effect
+ *
+ * - Increases contrast by 50%
+ * - Makes text and elements more distinct
+ * - Easier to read for visually impaired users
+ *
+ * ### Usage
+ *
+ * ```tsx
+ * <div className={highContrast ? 'high-contrast' : ''}>
+ *   Content with enhanced contrast
+ * </div>
+ * ```
+ *
+ * ## Font Size Utilities
+ *
+ * Allow users to adjust text size for better readability.
+ *
+ * ### Size Options
+ *
+ * | Class | Size | Use Case |
+ * |-------|------|----------|
+ * | .font-small | 14px | Compact view, more content |
+ * | .font-medium | 16px | Default, comfortable reading |
+ * | .font-large | 18px | Easier reading, accessibility |
+ *
+ * ### Implementation Example
+ *
+ * ```tsx
+ * function App() {
+ *   const [fontSize, setFontSize] = useState('font-medium')
+ *
+ *   return (
+ *     <div className={fontSize}>
+ *       <select onChange={(e) => setFontSize(e.target.value)}>
+ *         <option value="font-small">Small</option>
+ *         <option value="font-medium">Medium</option>
+ *         <option value="font-large">Large</option>
+ *       </select>
+ *
+ *       <p>This text will resize based on preference</p>
+ *     </div>
+ *   )
+ * }
+ * ```
+ *
+ * ### Why Fixed Pixel Sizes?
+ *
+ * - **User control**: App provides size settings
+ * - **Consistent**: Same across all browsers
+ * - **Simple**: Easy to understand options
+ *
+ * Alternative approach using rem:
+ * ```css
+ * .font-small { font-size: 0.875rem; }  /* 14px */
+ * .font-medium { font-size: 1rem; }      /* 16px */
+ * .font-large { font-size: 1.125rem; }   /* 18px */
+ * ```
+ *
+ * ## Accessibility Best Practices
+ *
+ * ### Detect System Preferences
+ *
+ * ```tsx
+ * // Reduced motion
+ * const prefersReducedMotion = window.matchMedia(
+ *   '(prefers-reduced-motion: reduce)'
+ * ).matches
+ *
+ * // High contrast
+ * const prefersHighContrast = window.matchMedia(
+ *   '(prefers-contrast: more)'
+ * ).matches
+ *
+ * // Dark mode (already handled in CSS)
+ * const prefersDark = window.matchMedia(
+ *   '(prefers-color-scheme: dark)'
+ * ).matches
+ * ```
+ *
+ * ### Save User Preferences
+ *
+ * Store in Firestore user settings (see Settings page):
+ *
+ * ```typescript
+ * interface UserSettings {
+ *   reducedMotion: boolean
+ *   highContrast: boolean
+ *   fontSize: 'small' | 'medium' | 'large'
+ * }
+ * ```
+ *
+ * ### Apply Globally
+ *
+ * Apply classes to body or root element:
+ *
+ * ```tsx
+ * <body
+ *   className={clsx(
+ *     settings.reducedMotion && 'reduced-motion',
+ *     settings.highContrast && 'high-contrast',
+ *     `font-${settings.fontSize}`
+ *   )}
+ * >
+ * ```
+ */
+/* Accessibility utilities */
+.reduced-motion {
+  animation: none !important;
+  transition: none !important;
+}
+
+.high-contrast {
+  filter: contrast(1.5);
+}
+
+.font-small {
+  font-size: 14px;
+}
+
+.font-medium {
+  font-size: 16px;
+}
+
+.font-large {
+  font-size: 18px;
+}
+// CLOSE: accessibility-utilities

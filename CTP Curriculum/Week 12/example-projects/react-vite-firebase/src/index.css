@@ -1,0 +1,238 @@
+/**
+ * Global Styles - Tailwind CSS Configuration
+ *
+ * This file sets up Tailwind CSS and custom global styles.
+ *
+ * KEY CONCEPTS:
+ * - Tailwind CSS directives
+ * - CSS custom properties (variables)
+ * - Global utility classes
+ * - Accessibility styles
+ *
+ * TAILWIND DIRECTIVES:
+ * - @tailwind base: Reset styles and base elements
+ * - @tailwind components: Component classes
+ * - @tailwind utilities: Utility classes
+ *
+ * These get replaced with actual CSS by Tailwind at build time.
+ *
+ * VIDEO GUIDE: tailwind-setup.mp4
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * CSS CUSTOM PROPERTIES (CSS Variables)
+ *
+ * Define color values as variables for easy theming
+ *
+ * WHY CSS VARIABLES?
+ * - Can be changed dynamically with JavaScript
+ * - Support dark mode switching
+ * - Inherited by all descendants
+ * - Better than Sass variables (runtime, not compile-time)
+ *
+ * USAGE:
+ * color: rgb(var(--foreground-rgb));
+ * background: rgb(var(--background-start-rgb));
+ */
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+/**
+ * DARK MODE
+ *
+ * When dark mode is active (via class or media query),
+ * override the color variables
+ *
+ * DARK MODE STRATEGIES:
+ * 1. Media query (system preference)
+ * 2. Class-based (manual toggle)
+ * 3. Both (this example)
+ *
+ * We use media query as default,
+ * but you can add 'dark' class for manual control
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+/**
+ * BODY STYLES
+ *
+ * Base styling for the entire page
+ *
+ * GRADIENT BACKGROUND:
+ * - linear-gradient for subtle depth
+ * - Uses CSS variables for theme support
+ * - Transparent to background-end creates fade effect
+ */
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/**
+ * TAILWIND LAYER
+ *
+ * Custom utilities added to Tailwind's utility layer
+ *
+ * @layer utilities:
+ * - Ensures proper CSS specificity
+ * - Can be purged if unused
+ * - Works with Tailwind's JIT mode
+ */
+@layer utilities {
+  /**
+   * TEXT BALANCE
+   *
+   * Balances text across multiple lines for better readability
+   * Especially useful for headings
+   */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /**
+   * LINE CLAMP
+   *
+   * Truncates text after N lines with ellipsis
+   * Great for previews and cards
+   */
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+}
+
+/**
+ * ACCESSIBILITY UTILITIES
+ *
+ * Custom classes for accessibility settings
+ * Applied dynamically based on user preferences
+ */
+
+/**
+ * REDUCED MOTION
+ *
+ * Disables animations for users sensitive to motion
+ *
+ * Applied when user sets reducedMotion: true
+ * Respects prefers-reduced-motion media query
+ *
+ * WCAG Guidelines:
+ * - Important for accessibility
+ * - Helps users with vestibular disorders
+ * - Legal requirement in some jurisdictions
+ */
+.reduced-motion,
+.reduced-motion * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/**
+ * HIGH CONTRAST
+ *
+ * Increases contrast for better visibility
+ *
+ * Applied when user sets highContrast: true
+ *
+ * filter: contrast(1.5):
+ * - Boosts all colors
+ * - Makes text more readable
+ * - Helps users with low vision
+ */
+.high-contrast {
+  filter: contrast(1.5);
+}
+
+/**
+ * FONT SIZE UTILITIES
+ *
+ * Custom font size classes applied to body
+ *
+ * WHY BODY ELEMENT?
+ * - Affects entire app
+ * - Rem units scale with root font size
+ * - One change affects all text
+ *
+ * ACCESSIBILITY:
+ * - Large fonts help users with low vision
+ * - Small fonts help fit more content
+ * - User choice improves experience
+ */
+.font-small {
+  font-size: 14px;
+}
+
+.font-medium {
+  font-size: 16px;
+}
+
+.font-large {
+  font-size: 18px;
+}
+
+/**
+ * SCROLLBAR STYLING (Optional)
+ *
+ * Custom scrollbar for better aesthetics
+ *
+ * ::-webkit-scrollbar:
+ * - Works in Chrome, Safari, Edge
+ * - Not in Firefox (uses default)
+ * - Progressive enhancement
+ *
+ * Example:
+ * ```css
+ * ::-webkit-scrollbar {
+ *   width: 10px;
+ * }
+ *
+ * ::-webkit-scrollbar-track {
+ *   background: #f1f1f1;
+ * }
+ *
+ * ::-webkit-scrollbar-thumb {
+ *   background: #888;
+ *   border-radius: 5px;
+ * }
+ * ```
+ */
+
+/**
+ * FOCUS VISIBLE
+ *
+ * Better focus indicators for keyboard navigation
+ *
+ * :focus-visible:
+ * - Only shows focus ring when using keyboard
+ * - Not when clicking with mouse
+ * - Better UX than :focus
+ *
+ * Tailwind provides: focus-visible:ring-2
+ */

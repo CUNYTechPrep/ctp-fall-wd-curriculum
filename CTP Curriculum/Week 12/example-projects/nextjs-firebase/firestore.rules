@@ -1,0 +1,1794 @@
+/**
+ * REF: firestore-rules-file
+ *
+ * # Firestore Security Rules
+ *
+ * These rules control access to your Firestore database and enforce data security.
+ *
+ * ## Key Concepts
+ *
+ * | Concept | Description |
+ * |---------|-------------|
+ * | **Security Rules** | Define who can read/write data |
+ * | **Server-Side** | Run on Google's servers (can't be bypassed) |
+ * | **Automatic** | Applied to every request automatically |
+ * | **Testable** | Test with Firestore Rules Playground |
+ *
+ * ## Rule Structure
+ *
+ * ```
+ * match /path/to/document {
+ *   allow operation: if condition;
+ * }
+ * ```
+ *
+ * ## Operations
+ *
+ * | Operation | Description | Includes |
+ * |-----------|-------------|----------|
+ * | **read** | Read operations | get, list |
+ * | **write** | Write operations | create, update, delete |
+ * | **get** | Read single document | - |
+ * | **list** | Query multiple documents | - |
+ * | **create** | Create new document | - |
+ * | **update** | Modify existing document | - |
+ * | **delete** | Remove document | - |
+ *
+ * ## Available Variables
+ *
+ * | Variable | Description | Example |
+ * |----------|-------------|---------|
+ * | `request.auth` | Current user info (null if not authenticated) | `request.auth.uid` |
+ * | `request.resource` | New data being written | `request.resource.data.title` |
+ * | `resource` | Existing data in database | `resource.data.userId` |
+ * | `request.time` | Current timestamp | `request.time` |
+ *
+ * ## Deployment
+ *
+ * ### Via Firebase Console
+ * 1. Go to Firebase Console
+ * 2. Navigate to Firestore → Rules
+ * 3. Paste these rules
+ * 4. Click "Publish"
+ *
+ * ### Via Firebase CLI
+ * ```bash
+ * firebase deploy --only firestore:rules
+ * ```
+ *
+ * ## Why Security Rules Matter
+ *
+ * - **Protection**: Prevent unauthorized access to data
+ * - **Validation**: Ensure data integrity and format
+ * - **Privacy**: Enforce user-level data isolation
+ * - **Server-side**: Can't be bypassed by client code
+ */
+// CLOSE: firestore-rules-file
+
+/**
+ * REF: rules-version-declaration
+ *
+ * # Rules Version Declaration
+ *
+ * Specifies which version of Firebase Security Rules to use.
+ *
+ * ## Version 2
+ *
+ * Rules version 2 is the current standard. It provides:
+ * - Better error messages
+ * - More consistent behavior
+ * - Additional built-in functions
+ * - Required for newer Firebase features
+ *
+ * ## Always Use Version 2
+ *
+ * ```
+ * rules_version = '2';
+ * ```
+ *
+ * Version 1 is deprecated and shouldn't be used for new projects.
+ */
+rules_version = '2';
+// CLOSE: rules-version-declaration
+/**
+ * REF: firestore-service-declaration
+ *
+ * # Firestore Service Declaration
+ *
+ * Declares rules for the Cloud Firestore service.
+ *
+ * ## Service Scope
+ *
+ * ```
+ * service cloud.firestore {
+ *   // All Firestore rules go here
+ * }
+ * ```
+ *
+ * ## Database Match
+ *
+ * ```
+ * match /databases/{database}/documents {
+ *   // Document path rules go here
+ * }
+ * ```
+ *
+ * - `{database}`: Wildcard for database name
+ * - `/documents`: Root of document paths
+ * - All collection/document rules nested inside
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // CLOSE: firestore-service-declaration
+
+    /**
+     * REF: helper-functions
+     *
+     * # Helper Functions
+     *
+     * Reusable logic for cleaner and more maintainable rules.
+     *
+     * ## Benefits of Helper Functions
+     *
+     * | Benefit | Description |
+     * |---------|-------------|
+     * | **DRY** | Don't repeat yourself |
+     * | **Readable** | Descriptive function names |
+     * | **Maintainable** | Change logic in one place |
+     * | **Testable** | Easier to understand and test |
+     *
+     * ## Function Definitions
+     *
+     * Functions must be defined before they're used in rules.
+     *
+     * ### isAuthenticated()
+     *
+     * Check if the current request is from an authenticated user.
+     *
+     * ```javascript
+     * function isAuthenticated() {
+     *   return request.auth != null;
+     * }
+     * ```
+     *
+     * **Returns**: `true` if user is signed in, `false` otherwise
+     *
+     * **Usage:**
+     * ```javascript
+     * allow read: if isAuthenticated();
+     * ```
+     *
+     * ### isOwner(userId)
+     *
+     * Check if the authenticated user owns a document.
+     *
+     * ```javascript
+     * function isOwner(userId) {
+     *   return request.auth.uid == userId;
+     * }
+     * ```
+     *
+     * **Parameters:**
+     * - `userId`: The user ID to check against
+     *
+     * **Returns**: `true` if `request.auth.uid` matches the provided `userId`
+     *
+     * **Usage:**
+     * ```javascript
+     * allow write: if isOwner(resource.data.userId);
+     * ```
+     *
+     * ### isCreating()
+     *
+     * Check if the request is creating a new document (not updating).
+     *
+     * ```javascript
+     * function isCreating() {
+     *   return request.resource.data.keys().hasAll(['createdAt']);
+     * }
+     * ```
+     *
+     * **Returns**: `true` if the new data includes a `createdAt` field
+     *
+     * **Usage:**
+     * ```javascript
+     * allow create: if isCreating();
+     * ```
+     *
+     * ## Why Use Functions?
+     *
+     * **Without functions:**
+     * ```javascript
+     * allow read: if request.auth != null;
+     * allow write: if request.auth != null;
+     * allow delete: if request.auth != null;
+     * ```
+     *
+     * **With functions:**
+     * ```javascript
+     * allow read, write, delete: if isAuthenticated();
+     * ```
+     *
+     * Much cleaner and easier to update!
+     */
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user owns the document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Check if request is creating (not updating)
+    function isCreating() {
+      return request.resource.data.keys().hasAll(['createdAt']);
+    }
+    // CLOSE: helper-functions
+
+    /**
+     * REF: users-collection-rules
+     *
+     * # Users Collection Rules
+     *
+     * Stores user profile information and controls access to user documents.
+     *
+     * ## Collection Structure
+     *
+     * ```
+     * /users/{userId}
+     * ```
+     *
+     * ## Document Schema
+     *
+     * | Field | Type | Description |
+     * |-------|------|-------------|
+     * | uid | string | Firebase Auth user ID |
+     * | email | string | User's email address |
+     * | displayName | string | User's display name |
+     * | photoURL | string | Profile picture URL |
+     * | createdAt | timestamp | Account creation time |
+     * | updatedAt | timestamp | Last profile update |
+     *
+     * ## Security Model
+     *
+     * ### Read Access
+     *
+     * ```javascript
+     * allow read: if isAuthenticated();
+     * ```
+     *
+     * - **Who**: Any authenticated user
+     * - **Why**: Profiles are semi-public for:
+     *   - Displaying author names on todos
+     *   - Showing sender info in messages
+     *   - User search and discovery
+     *
+     * ### Write Access
+     *
+     * ```javascript
+     * allow write: if isOwner(userId);
+     * ```
+     *
+     * - **Who**: Only the user themselves
+     * - **Why**: Prevents users from modifying others' profiles
+     * - **Security**: User ID in path must match auth.uid
+     *
+     * ## Example Operations
+     *
+     * ### Creating a Profile (Allowed)
+     *
+     * ```typescript
+     * // When user signs up
+     * await setDoc(doc(db, 'users', user.uid), {
+     *   uid: user.uid,
+     *   email: user.email,
+     *   displayName: user.displayName,
+     *   photoURL: user.photoURL,
+     *   createdAt: serverTimestamp(),
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `isOwner(userId)`: user.uid === userId ✓
+     * - Allowed!
+     *
+     * ### Reading Any Profile (Allowed if authenticated)
+     *
+     * ```typescript
+     * // View another user's profile
+     * const userDoc = await getDoc(doc(db, 'users', otherUserId))
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: request.auth != null ✓
+     * - Allowed!
+     *
+     * ### Updating Another User's Profile (Denied)
+     *
+     * ```typescript
+     * // Try to update someone else's profile
+     * await updateDoc(doc(db, 'users', otherUserId), {
+     *   displayName: 'Hacked!'
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `isOwner(otherUserId)`: request.auth.uid === otherUserId ✗
+     * - **Denied!** Permission denied error
+     *
+     * ## Privacy Considerations
+     *
+     * Since all authenticated users can read profiles:
+     * - Don't store sensitive info (phone, address)
+     * - Keep emails visible only if needed
+     * - Use separate `/userSettings/{userId}` for private data
+     */
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+    // CLOSE: users-collection-rules
+
+    /**
+     * REF: user-settings-collection-rules
+     *
+     * # User Settings Collection Rules
+     *
+     * Stores user-specific accessibility preferences and private settings.
+     *
+     * ## Collection Structure
+     *
+     * ```
+     * /userSettings/{userId}
+     * ```
+     *
+     * ## Document Schema
+     *
+     * | Field | Type | Description |
+     * |-------|------|-------------|
+     * | reducedMotion | boolean | Disable animations |
+     * | highContrast | boolean | Increase contrast |
+     * | fontSize | string | 'small', 'medium', or 'large' |
+     * | notificationsEnabled | boolean | Email notifications |
+     * | updatedAt | timestamp | Last settings update |
+     *
+     * ## Security Model
+     *
+     * ### Read and Write Access
+     *
+     * ```javascript
+     * allow read, write: if isOwner(userId);
+     * ```
+     *
+     * - **Who**: Only the user themselves
+     * - **Why**: Settings are completely private
+     * - **No sharing**: Other users cannot view or modify
+     *
+     * ## Privacy-First Design
+     *
+     * Unlike `/users/{userId}` which is semi-public, settings are fully private:
+     *
+     * | Collection | Visibility | Use Case |
+     * |------------|-----------|----------|
+     * | `/users/` | Semi-public | Display names, photos |
+     * | `/userSettings/` | Private | Preferences, settings |
+     *
+     * ## Example Operations
+     *
+     * ### Reading Own Settings (Allowed)
+     *
+     * ```typescript
+     * const settings = await getDoc(doc(db, 'userSettings', user.uid))
+     * ```
+     *
+     * **Rule Check:**
+     * - `isOwner(user.uid)`: request.auth.uid === user.uid ✓
+     * - Allowed!
+     *
+     * ### Updating Own Settings (Allowed)
+     *
+     * ```typescript
+     * await updateDoc(doc(db, 'userSettings', user.uid), {
+     *   fontSize: 'large',
+     *   highContrast: true,
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `isOwner(user.uid)`: request.auth.uid === user.uid ✓
+     * - Allowed!
+     *
+     * ### Reading Another User's Settings (Denied)
+     *
+     * ```typescript
+     * const settings = await getDoc(doc(db, 'userSettings', otherUserId))
+     * ```
+     *
+     * **Rule Check:**
+     * - `isOwner(otherUserId)`: request.auth.uid === otherUserId ✗
+     * - **Denied!** Permission denied
+     */
+    match /userSettings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    // CLOSE: user-settings-collection-rules
+
+    /**
+     * REF: todos-collection-rules
+     *
+     * # Todos Collection Rules
+     *
+     * Main collection for todo items with public/private visibility control.
+     *
+     * ## Collection Structure
+     *
+     * ```
+     * /todos/{todoId}
+     * ```
+     *
+     * ## Document Schema
+     *
+     * | Field | Type | Required | Description |
+     * |-------|------|----------|-------------|
+     * | title | string | Yes | Todo title (max 500 chars) |
+     * | description | string | No | Todo description (max 2000 chars) |
+     * | completed | boolean | Yes | Completion status |
+     * | isPublic | boolean | Yes | Public/private visibility |
+     * | userId | string | Yes | Owner's user ID |
+     * | createdAt | timestamp | Yes | Creation time |
+     * | updatedAt | timestamp | Yes | Last update time |
+     *
+     * ## Security Model
+     *
+     * ### Read Access
+     *
+     * ```javascript
+     * allow read: if isAuthenticated() && (
+     *   resource.data.isPublic == true ||
+     *   isOwner(resource.data.userId)
+     * );
+     * ```
+     *
+     * Users can read todos if:
+     * 1. **They are authenticated**, AND
+     * 2. **Either**:
+     *    - The todo is marked public (`isPublic === true`)
+     *    - They own the todo (`userId === auth.uid`)
+     *
+     * **Access Matrix:**
+     *
+     * | Scenario | Can Read? |
+     * |----------|-----------|
+     * | Unauthenticated user | No |
+     * | Authenticated, public todo | Yes |
+     * | Authenticated, own private todo | Yes |
+     * | Authenticated, other's private todo | No |
+     *
+     * ### Create Access
+     *
+     * ```javascript
+     * allow create: if isAuthenticated() &&
+     *   request.resource.data.userId == request.auth.uid &&
+     *   request.resource.data.title is string &&
+     *   request.resource.data.title.size() > 0 &&
+     *   request.resource.data.title.size() <= 500;
+     * ```
+     *
+     * Users can create todos if:
+     * 1. **They are authenticated**
+     * 2. **userId matches their auth.uid** (can't create as another user)
+     * 3. **Title is a string**
+     * 4. **Title is not empty** (size > 0)
+     * 5. **Title is at most 500 characters**
+     *
+     * ### Update and Delete Access
+     *
+     * ```javascript
+     * allow update, delete: if isAuthenticated() &&
+     *   isOwner(resource.data.userId);
+     * ```
+     *
+     * Users can update/delete todos if:
+     * 1. **They are authenticated**
+     * 2. **They own the todo** (userId matches auth.uid)
+     *
+     * ## Validation Rules
+     *
+     * ### Title Validation
+     *
+     * - **Type**: Must be a string
+     * - **Required**: Cannot be empty
+     * - **Max length**: 500 characters
+     *
+     * **Examples:**
+     * ```javascript
+     * ✓ "Buy groceries" - Valid
+     * ✓ "A".repeat(500) - Valid (exactly 500 chars)
+     * ✗ "" - Invalid (empty)
+     * ✗ "A".repeat(501) - Invalid (too long)
+     * ✗ 123 - Invalid (not a string)
+     * ```
+     *
+     * ### Description Validation
+     *
+     * While not enforced in these rules, the description field should:
+     * - Be a string
+     * - Have a max length of 2000 characters
+     *
+     * **To add description validation:**
+     * ```javascript
+     * allow create: if ... &&
+     *   (!request.resource.data.keys().hasAny(['description']) ||
+     *    (request.resource.data.description is string &&
+     *     request.resource.data.description.size() <= 2000));
+     * ```
+     *
+     * ## Example Operations
+     *
+     * ### Creating a Todo (Allowed)
+     *
+     * ```typescript
+     * await addDoc(collection(db, 'todos'), {
+     *   title: 'Buy milk',
+     *   description: 'From the grocery store',
+     *   completed: false,
+     *   isPublic: true,
+     *   userId: user.uid, // Must match auth.uid
+     *   createdAt: serverTimestamp(),
+     *   updatedAt: serverTimestamp(),
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - `request.resource.data.userId == request.auth.uid`: true ✓
+     * - `title is string`: true ✓
+     * - `title.size() > 0`: true ✓
+     * - `title.size() <= 500`: true ✓
+     * - **Allowed!**
+     *
+     * ### Creating Todo as Another User (Denied)
+     *
+     * ```typescript
+     * await addDoc(collection(db, 'todos'), {
+     *   title: 'Fake todo',
+     *   userId: 'another-user-id', // Doesn't match auth.uid
+     *   // ...
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `request.resource.data.userId == request.auth.uid`: false ✗
+     * - **Denied!** Permission denied
+     *
+     * ### Reading Public Todo (Allowed)
+     *
+     * ```typescript
+     * // Any authenticated user
+     * const todoDoc = await getDoc(doc(db, 'todos', publicTodoId))
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - `resource.data.isPublic == true`: true ✓
+     * - **Allowed!**
+     *
+     * ### Reading Private Todo Not Owned (Denied)
+     *
+     * ```typescript
+     * // Try to read someone else's private todo
+     * const todoDoc = await getDoc(doc(db, 'todos', privateTodoId))
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - `resource.data.isPublic == true`: false ✗
+     * - `isOwner(resource.data.userId)`: false ✗
+     * - **Denied!** Permission denied
+     *
+     * ### Updating Own Todo (Allowed)
+     *
+     * ```typescript
+     * await updateDoc(doc(db, 'todos', myTodoId), {
+     *   completed: true,
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - `isOwner(resource.data.userId)`: true ✓
+     * - **Allowed!**
+     *
+     * ## Public vs Private Todos
+     *
+     * ### Public Todos (`isPublic: true`)
+     *
+     * - Visible in public feed
+     * - Any authenticated user can view
+     * - Only owner can edit/delete
+     * - Useful for sharing tasks
+     *
+     * ### Private Todos (`isPublic: false`)
+     *
+     * - Only owner can view
+     * - Only owner can edit/delete
+     * - Not visible to other users
+     * - Default for personal tasks
+     *
+     * ## Security Considerations
+     *
+     * ### User ID Spoofing Prevention
+     *
+     * The rule `request.resource.data.userId == request.auth.uid` prevents users from:
+     * - Creating todos as another user
+     * - Impersonating other users
+     * - Bypassing ownership checks
+     *
+     * ### Public Feed Safety
+     *
+     * Public todos are intentionally visible to all authenticated users for:
+     * - Social features (feed page)
+     * - Collaboration
+     * - Sharing progress
+     *
+     * Users should be warned when making todos public!
+     */
+    match /todos/{todoId} {
+      // Read: Own todos OR public todos
+      allow read: if isAuthenticated() && (
+        resource.data.isPublic == true ||
+        isOwner(resource.data.userId)
+      );
+
+      // Create: Must be authenticated, userId must match
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() > 0 &&
+        request.resource.data.title.size() <= 500;
+
+      // Update/Delete: Must own the todo
+      allow update, delete: if isAuthenticated() &&
+        isOwner(resource.data.userId);
+    }
+    // CLOSE: todos-collection-rules
+
+    /**
+     * REF: todo-attachments-collection-rules
+     *
+     * # Todo Attachments Collection Rules
+     *
+     * File metadata for todo attachments with nested security checks.
+     *
+     * ## Collection Structure
+     *
+     * ```
+     * /todoAttachments/{attachmentId}
+     * ```
+     *
+     * ## Document Schema
+     *
+     * | Field | Type | Description |
+     * |-------|------|-------------|
+     * | todoId | string | Parent todo's document ID |
+     * | fileName | string | Original file name |
+     * | fileUrl | string | Firebase Storage download URL |
+     * | fileType | string | MIME type |
+     * | fileSize | number | Size in bytes |
+     * | uploadedAt | timestamp | Upload timestamp |
+     *
+     * ## Security Model: Nested Checks
+     *
+     * Attachments inherit security from their parent todo using `get()` to fetch the todo document.
+     *
+     * ### Read Access
+     *
+     * ```javascript
+     * allow read: if isAuthenticated() && (
+     *   get(/databases/$(database)/documents/todos/$(resource.data.todoId)).data.isPublic == true ||
+     *   isOwner(get(/databases/$(database)/documents/todos/$(resource.data.todoId)).data.userId)
+     * );
+     * ```
+     *
+     * Users can read attachments if:
+     * 1. **They are authenticated**, AND
+     * 2. **Either**:
+     *    - The parent todo is public
+     *    - They own the parent todo
+     *
+     * ### How get() Works
+     *
+     * `get()` fetches a document during rule evaluation:
+     *
+     * ```javascript
+     * get(/databases/$(database)/documents/todos/$(resource.data.todoId))
+     * ```
+     *
+     * **Breaks down to:**
+     * 1. `/databases/$(database)/documents/` - Base path
+     * 2. `todos/` - Collection name
+     * 3. `$(resource.data.todoId)` - Document ID from attachment's todoId field
+     *
+     * **Returns:** The todo document, allowing access to `.data.isPublic` and `.data.userId`
+     *
+     * ### Create Access
+     *
+     * ```javascript
+     * allow create: if isAuthenticated() &&
+     *   isOwner(get(/databases/$(database)/documents/todos/$(request.resource.data.todoId)).data.userId);
+     * ```
+     *
+     * Users can create attachments if:
+     * 1. **They are authenticated**
+     * 2. **They own the parent todo**
+     *
+     * **Note:** Uses `request.resource.data.todoId` (new data) instead of `resource.data.todoId` (existing data)
+     *
+     * ### Delete Access
+     *
+     * ```javascript
+     * allow delete: if isAuthenticated() &&
+     *   isOwner(get(/databases/$(database)/documents/todos/$(resource.data.todoId)).data.userId);
+     * ```
+     *
+     * Users can delete attachments if:
+     * 1. **They are authenticated**
+     * 2. **They own the parent todo**
+     *
+     * ## Why Nested Security?
+     *
+     * **Problem without nested security:**
+     * - User could attach files to someone else's todo
+     * - Access control would be inconsistent with todos
+     *
+     * **Solution with get():**
+     * - Check parent todo's ownership
+     * - Inherit todo's public/private status
+     * - Ensure consistency across related data
+     *
+     * ## Performance Consideration
+     *
+     * Each `get()` call:
+     * - Counts as a document read
+     * - Adds latency to rule evaluation
+     * - Increases costs slightly
+     *
+     * **Trade-off:**
+     * - **Security**: Strong, consistent access control
+     * - **Cost**: Small increase in read operations
+     * - **Performance**: Slightly slower (usually negligible)
+     *
+     * ## Example Operations
+     *
+     * ### Creating Attachment (Allowed)
+     *
+     * ```typescript
+     * // User owns the todo
+     * await addDoc(collection(db, 'todoAttachments'), {
+     *   todoId: myTodoId,
+     *   fileName: 'document.pdf',
+     *   fileUrl: 'https://...',
+     *   fileType: 'application/pdf',
+     *   fileSize: 102400,
+     *   uploadedAt: serverTimestamp(),
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * 1. Fetches todo document with `get()`
+     * 2. Checks `todo.userId === request.auth.uid`: true ✓
+     * 3. **Allowed!**
+     *
+     * ### Creating Attachment for Someone Else's Todo (Denied)
+     *
+     * ```typescript
+     * // Try to attach to someone else's todo
+     * await addDoc(collection(db, 'todoAttachments'), {
+     *   todoId: otherUserTodoId,
+     *   // ...
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * 1. Fetches todo document with `get()`
+     * 2. Checks `todo.userId === request.auth.uid`: false ✗
+     * 3. **Denied!** Permission denied
+     *
+     * ### Reading Attachment of Public Todo (Allowed)
+     *
+     * ```typescript
+     * // Todo is public
+     * const attachment = await getDoc(doc(db, 'todoAttachments', attachmentId))
+     * ```
+     *
+     * **Rule Check:**
+     * 1. Fetches parent todo with `get()`
+     * 2. Checks `todo.isPublic === true`: true ✓
+     * 3. **Allowed!**
+     *
+     * ## Security Best Practices
+     *
+     * ### Always Validate todoId
+     *
+     * Ensure todoId exists and points to a valid todo:
+     *
+     * ```javascript
+     * allow create: if isAuthenticated() &&
+     *   exists(/databases/$(database)/documents/todos/$(request.resource.data.todoId)) &&
+     *   isOwner(get(/databases/$(database)/documents/todos/$(request.resource.data.todoId)).data.userId);
+     * ```
+     *
+     * ### Coordinate with Storage Rules
+     *
+     * Firebase Storage rules should also check todo ownership:
+     *
+     * ```
+     * match /todo-attachments/{userId}/{todoId}/{filename} {
+     *   allow read: if request.auth != null;
+     *   allow write: if request.auth.uid == userId;
+     * }
+     * ```
+     */
+    match /todoAttachments/{attachmentId} {
+      // Can read if todo is public OR you own the todo
+      allow read: if isAuthenticated() && (
+        get(/databases/$(database)/documents/todos/$(resource.data.todoId)).data.isPublic == true ||
+        isOwner(get(/databases/$(database)/documents/todos/$(resource.data.todoId)).data.userId)
+      );
+
+      // Can write if you own the todo
+      allow create: if isAuthenticated() &&
+        isOwner(get(/databases/$(database)/documents/todos/$(request.resource.data.todoId)).data.userId);
+
+      allow delete: if isAuthenticated() &&
+        isOwner(get(/databases/$(database)/documents/todos/$(resource.data.todoId)).data.userId);
+    }
+    // CLOSE: todo-attachments-collection-rules
+
+    /**
+     * REF: messages-collection-rules
+     *
+     * # Messages Collection Rules
+     *
+     * Real-time messaging between users with privacy and anti-spoofing protection.
+     *
+     * ## Collection Structure
+     *
+     * ```
+     * /messages/{messageId}
+     * ```
+     *
+     * ## Document Schema
+     *
+     * | Field | Type | Description |
+     * |-------|------|-------------|
+     * | senderId | string | User who sent the message |
+     * | recipientId | string | User who receives the message |
+     * | content | string | Message text (max 2000 chars) |
+     * | read | boolean | Whether recipient has read it |
+     * | readAt | timestamp | When message was read |
+     * | sentAt | timestamp | When message was sent |
+     *
+     * ## Security Model
+     *
+     * ### Read Access
+     *
+     * ```javascript
+     * allow read: if isAuthenticated() && (
+     *   resource.data.senderId == request.auth.uid ||
+     *   resource.data.recipientId == request.auth.uid
+     * );
+     * ```
+     *
+     * Users can read messages if:
+     * 1. **They are authenticated**, AND
+     * 2. **Either**:
+     *    - They sent the message (`senderId === auth.uid`)
+     *    - They received the message (`recipientId === auth.uid`)
+     *
+     * **Privacy protection:** Users cannot read others' conversations.
+     *
+     * ### Create Access
+     *
+     * ```javascript
+     * allow create: if isAuthenticated() &&
+     *   request.resource.data.senderId == request.auth.uid &&
+     *   request.resource.data.content is string &&
+     *   request.resource.data.content.size() > 0 &&
+     *   request.resource.data.content.size() <= 2000;
+     * ```
+     *
+     * Users can create messages if:
+     * 1. **They are authenticated**
+     * 2. **senderId matches their auth.uid** (can't impersonate)
+     * 3. **Content is a string**
+     * 4. **Content is not empty** (size > 0)
+     * 5. **Content is at most 2000 characters**
+     *
+     * **Anti-spoofing:** Users cannot send messages pretending to be someone else.
+     *
+     * ### Update Access
+     *
+     * ```javascript
+     * allow update: if isAuthenticated() &&
+     *   resource.data.recipientId == request.auth.uid &&
+     *   request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+     * ```
+     *
+     * Users can update messages if:
+     * 1. **They are authenticated**
+     * 2. **They are the recipient** (not the sender)
+     * 3. **Only modifying read/readAt fields** (using `diff()` and `affectedKeys()`)
+     *
+     * **Purpose:** Recipients can mark messages as read, but cannot:
+     * - Edit message content
+     * - Change sender/recipient
+     * - Modify sent timestamp
+     *
+     * ## Advanced Rule Technique: diff() and affectedKeys()
+     *
+     * ### diff()
+     *
+     * Compares new data with existing data:
+     *
+     * ```javascript
+     * request.resource.data.diff(resource.data)
+     * ```
+     *
+     * **Returns:** Object representing differences between documents
+     *
+     * ### affectedKeys()
+     *
+     * Gets list of fields that changed:
+     *
+     * ```javascript
+     * .diff(...).affectedKeys()
+     * ```
+     *
+     * **Returns:** Array of field names that were added, modified, or removed
+     *
+     * ### hasOnly()
+     *
+     * Checks if only specific fields changed:
+     *
+     * ```javascript
+     * .affectedKeys().hasOnly(['read', 'readAt'])
+     * ```
+     *
+     * **Returns:** `true` if ONLY `read` and/or `readAt` changed, `false` otherwise
+     *
+     * ## Example Operations
+     *
+     * ### Sending a Message (Allowed)
+     *
+     * ```typescript
+     * await addDoc(collection(db, 'messages'), {
+     *   senderId: user.uid,
+     *   recipientId: otherUserId,
+     *   content: 'Hello!',
+     *   read: false,
+     *   sentAt: serverTimestamp(),
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - `senderId == request.auth.uid`: true ✓
+     * - `content is string`: true ✓
+     * - `content.size() > 0`: true ✓
+     * - `content.size() <= 2000`: true ✓
+     * - **Allowed!**
+     *
+     * ### Impersonating Another User (Denied)
+     *
+     * ```typescript
+     * await addDoc(collection(db, 'messages'), {
+     *   senderId: 'another-user-id', // Not my UID!
+     *   recipientId: victimUserId,
+     *   content: 'Fake message',
+     *   // ...
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `senderId == request.auth.uid`: false ✗
+     * - **Denied!** Permission denied
+     *
+     * ### Reading Own Sent Message (Allowed)
+     *
+     * ```typescript
+     * const message = await getDoc(doc(db, 'messages', messageId))
+     * // Message where senderId === user.uid
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - `resource.data.senderId == request.auth.uid`: true ✓
+     * - **Allowed!**
+     *
+     * ### Reading Received Message (Allowed)
+     *
+     * ```typescript
+     * const message = await getDoc(doc(db, 'messages', messageId))
+     * // Message where recipientId === user.uid
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - `resource.data.recipientId == request.auth.uid`: true ✓
+     * - **Allowed!**
+     *
+     * ### Reading Others' Conversation (Denied)
+     *
+     * ```typescript
+     * const message = await getDoc(doc(db, 'messages', messageId))
+     * // Message where senderId !== user.uid AND recipientId !== user.uid
+     * ```
+     *
+     * **Rule Check:**
+     * - `resource.data.senderId == request.auth.uid`: false ✗
+     * - `resource.data.recipientId == request.auth.uid`: false ✗
+     * - **Denied!** Permission denied
+     *
+     * ### Marking Message as Read (Allowed)
+     *
+     * ```typescript
+     * // Recipient marking message as read
+     * await updateDoc(doc(db, 'messages', messageId), {
+     *   read: true,
+     *   readAt: serverTimestamp(),
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `resource.data.recipientId == request.auth.uid`: true ✓
+     * - `affectedKeys().hasOnly(['read', 'readAt'])`: true ✓
+     * - **Allowed!**
+     *
+     * ### Editing Message Content (Denied)
+     *
+     * ```typescript
+     * // Try to edit message content
+     * await updateDoc(doc(db, 'messages', messageId), {
+     *   content: 'Changed message',
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `affectedKeys().hasOnly(['read', 'readAt'])`: false ✗ (content changed)
+     * - **Denied!** Permission denied
+     *
+     * ## Privacy Features
+     *
+     * ### End-to-End Conversation Privacy
+     *
+     * - Only sender and recipient can view messages
+     * - No admin or third-party access via rules
+     * - Private conversations guaranteed
+     *
+     * ### Preventing Message Tampering
+     *
+     * - Recipients cannot edit content
+     * - Senders cannot mark as read
+     * - Timestamps cannot be changed
+     * - Original message preserved
+     *
+     * ## Querying Messages
+     *
+     * ### Get All Messages for Current User
+     *
+     * ```typescript
+     * // Messages I sent
+     * const sentQuery = query(
+     *   collection(db, 'messages'),
+     *   where('senderId', '==', user.uid),
+     *   orderBy('sentAt', 'desc')
+     * )
+     *
+     * // Messages I received
+     * const receivedQuery = query(
+     *   collection(db, 'messages'),
+     *   where('recipientId', '==', user.uid),
+     *   orderBy('sentAt', 'desc')
+     * )
+     * ```
+     *
+     * ### Get Conversation Between Two Users
+     *
+     * ```typescript
+     * // Combination query (client-side filtering)
+     * const messagesQuery = query(
+     *   collection(db, 'messages'),
+     *   where('senderId', 'in', [user.uid, otherUserId]),
+     *   orderBy('sentAt', 'asc')
+     * )
+     *
+     * // Then filter on client to only show messages with other user
+     * const conversation = messages.filter(
+     *   m =>
+     *     (m.senderId === user.uid && m.recipientId === otherUserId) ||
+     *     (m.senderId === otherUserId && m.recipientId === user.uid)
+     * )
+     * ```
+     */
+    match /messages/{messageId} {
+      // Read: Messages you sent or received
+      allow read: if isAuthenticated() && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid
+      );
+
+      // Create: Must be authenticated, senderId must be you
+      allow create: if isAuthenticated() &&
+        request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.content is string &&
+        request.resource.data.content.size() > 0 &&
+        request.resource.data.content.size() <= 2000;
+
+      // Update: Only recipient can mark as read
+      allow update: if isAuthenticated() &&
+        resource.data.recipientId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+    }
+    // CLOSE: messages-collection-rules
+  }
+}
+
+/**
+ * REF: testing-rules
+ *
+ * # Testing Firestore Rules
+ *
+ * How to test your security rules before deployment.
+ *
+ * ## Firebase Rules Playground
+ *
+ * **Access:** Firebase Console → Firestore → Rules → Rules Playground
+ *
+ * The Rules Playground allows you to:
+ * - Simulate read/write operations
+ * - Test with different user authentication states
+ * - Verify rules work as expected
+ * - Debug access denied errors
+ *
+ * ## Test Scenarios
+ *
+ * ### Scenario 1: Authenticated User Reading Own Todo
+ *
+ * **Expected:** Should succeed
+ *
+ * ```
+ * Simulate: read
+ * Location: /todos/todo123
+ * Auth: Authenticated user (uid: user1)
+ * Document data: { userId: "user1", title: "My todo", isPublic: false }
+ * Result: ✓ Allow
+ * ```
+ *
+ * ### Scenario 2: Authenticated User Reading Other's Private Todo
+ *
+ * **Expected:** Should fail
+ *
+ * ```
+ * Simulate: read
+ * Location: /todos/todo456
+ * Auth: Authenticated user (uid: user1)
+ * Document data: { userId: "user2", title: "Other's todo", isPublic: false }
+ * Result: ✗ Deny
+ * ```
+ *
+ * ### Scenario 3: Authenticated User Reading Public Todo
+ *
+ * **Expected:** Should succeed
+ *
+ * ```
+ * Simulate: read
+ * Location: /todos/todo789
+ * Auth: Authenticated user (uid: user1)
+ * Document data: { userId: "user2", title: "Public todo", isPublic: true }
+ * Result: ✓ Allow
+ * ```
+ *
+ * ### Scenario 4: Unauthenticated User Reading Anything
+ *
+ * **Expected:** Should fail
+ *
+ * ```
+ * Simulate: read
+ * Location: /todos/todo123
+ * Auth: Unauthenticated
+ * Document data: { userId: "user1", title: "Any todo", isPublic: true }
+ * Result: ✗ Deny
+ * ```
+ *
+ * ### Scenario 5: User Creating Todo with Wrong userId
+ *
+ * **Expected:** Should fail
+ *
+ * ```
+ * Simulate: create
+ * Location: /todos/newTodo
+ * Auth: Authenticated user (uid: user1)
+ * New document data: { userId: "user2", title: "Fake todo" }
+ * Result: ✗ Deny (userId doesn't match auth.uid)
+ * ```
+ *
+ * ### Scenario 6: User Updating Other's Todo
+ *
+ * **Expected:** Should fail
+ *
+ * ```
+ * Simulate: update
+ * Location: /todos/todo456
+ * Auth: Authenticated user (uid: user1)
+ * Existing data: { userId: "user2", title: "Original" }
+ * New data: { userId: "user2", title: "Modified" }
+ * Result: ✗ Deny (not the owner)
+ * ```
+ *
+ * ## Automated Testing
+ *
+ * For production apps, use the Firebase Emulator Suite:
+ *
+ * ```bash
+ * npm install -D @firebase/rules-unit-testing
+ * firebase emulators:start --only firestore
+ * ```
+ *
+ * **Example test:**
+ * ```javascript
+ * import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing'
+ *
+ * test('user can read own todo', async () => {
+ *   const db = getFirestore('user1')
+ *   const todo = doc(db, 'todos/todo1')
+ *   await assertSucceeds(getDoc(todo))
+ * })
+ *
+ * test('user cannot read other private todo', async () => {
+ *   const db = getFirestore('user1')
+ *   const todo = doc(db, 'todos/user2-private-todo')
+ *   await assertFails(getDoc(todo))
+ * })
+ * ```
+ */
+// CLOSE: testing-rules
+
+/**
+ * REF: common-rule-patterns
+ *
+ * # Common Rule Patterns
+ *
+ * Reusable patterns for common security scenarios.
+ *
+ * ## Authentication Patterns
+ *
+ * ### Allow if Authenticated
+ *
+ * ```javascript
+ * allow read: if request.auth != null;
+ * ```
+ *
+ * **Use case:** Semi-public data that requires login
+ *
+ * ### Allow if Owner
+ *
+ * ```javascript
+ * allow write: if request.auth.uid == resource.data.userId;
+ * ```
+ *
+ * **Use case:** User-specific data (profiles, settings)
+ *
+ * ### Allow if Owner (on create)
+ *
+ * ```javascript
+ * allow create: if request.auth.uid == request.resource.data.userId;
+ * ```
+ *
+ * **Note:** Use `request.resource` for new data, `resource` for existing
+ *
+ * ## Validation Patterns
+ *
+ * ### Validate Required Fields
+ *
+ * ```javascript
+ * allow create: if request.resource.data.keys().hasAll(['title', 'userId', 'createdAt']);
+ * ```
+ *
+ * **Ensures:** Document contains all required fields
+ *
+ * ### Validate Field Types
+ *
+ * ```javascript
+ * allow create: if request.resource.data.title is string &&
+ *                 request.resource.data.completed is bool &&
+ *                 request.resource.data.createdAt is timestamp;
+ * ```
+ *
+ * **Ensures:** Fields have correct types
+ *
+ * ### Validate String Length
+ *
+ * ```javascript
+ * allow create: if request.resource.data.title.size() > 0 &&
+ *                 request.resource.data.title.size() <= 500;
+ * ```
+ *
+ * **Ensures:** String is not empty and within limits
+ *
+ * ### Validate Number Range
+ *
+ * ```javascript
+ * allow create: if request.resource.data.priority >= 1 &&
+ *                 request.resource.data.priority <= 5;
+ * ```
+ *
+ * **Ensures:** Number is within valid range
+ *
+ * ### Validate Enum Values
+ *
+ * ```javascript
+ * allow create: if request.resource.data.status in ['pending', 'active', 'completed'];
+ * ```
+ *
+ * **Ensures:** Field matches one of allowed values
+ *
+ * ## Nested Security Patterns
+ *
+ * ### Check Parent Document
+ *
+ * ```javascript
+ * allow read: if get(/databases/$(database)/documents/todos/$(todoId)).data.userId == request.auth.uid;
+ * ```
+ *
+ * **Use case:** Inherit permissions from parent document
+ *
+ * ### Check Document Exists
+ *
+ * ```javascript
+ * allow create: if exists(/databases/$(database)/documents/users/$(request.auth.uid));
+ * ```
+ *
+ * **Ensures:** Referenced document exists before creating
+ *
+ * ## Update Patterns
+ *
+ * ### Allow Partial Updates
+ *
+ * ```javascript
+ * allow update: if request.auth.uid == resource.data.userId &&
+ *                 request.resource.data.keys().hasAny(['title', 'description', 'completed']);
+ * ```
+ *
+ * **Allows:** Owner to update specific fields
+ *
+ * ### Prevent Field Modification
+ *
+ * ```javascript
+ * allow update: if request.resource.data.userId == resource.data.userId;
+ * ```
+ *
+ * **Ensures:** userId cannot be changed during update
+ *
+ * ### Allow Only Specific Field Changes
+ *
+ * ```javascript
+ * allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+ * ```
+ *
+ * **Allows:** Only `read` and `readAt` can be modified
+ *
+ * ## Time-Based Patterns
+ *
+ * ### Require Recent Timestamp
+ *
+ * ```javascript
+ * allow create: if request.resource.data.createdAt == request.time;
+ * ```
+ *
+ * **Ensures:** Timestamp is server time (prevents backdating)
+ *
+ * ### Prevent Future Dates
+ *
+ * ```javascript
+ * allow create: if request.resource.data.dueDate >= request.time;
+ * ```
+ *
+ * **Ensures:** Due date is not in the past
+ */
+// CLOSE: common-rule-patterns
+
+/**
+ * REF: performance-considerations
+ *
+ * # Performance Considerations
+ *
+ * Optimizing Firestore rules for speed and cost.
+ *
+ * ## Rules Execution
+ *
+ * Security rules run on **every request**:
+ * - Evaluated on Google's servers
+ * - Can impact request latency
+ * - Complex rules = slower requests
+ * - `get()` calls count as document reads
+ *
+ * ## Optimization Strategies
+ *
+ * ### 1. Keep Rules Simple
+ *
+ * **Slow:**
+ * ```javascript
+ * allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true &&
+ *               get(/databases/$(database)/documents/todos/$(todoId)).data.isPublic == true &&
+ *               get(/databases/$(database)/documents/settings/app).data.allowPublicRead == true;
+ * ```
+ * - 3 document reads per request
+ * - Significant latency
+ * - High costs
+ *
+ * **Fast:**
+ * ```javascript
+ * allow read: if isAuthenticated();
+ * ```
+ * - No document reads
+ * - Instant evaluation
+ * - No extra costs
+ *
+ * ### 2. Minimize get() Calls
+ *
+ * Each `get()` call:
+ * - Counts as a document read
+ * - Adds 10-50ms latency
+ * - Costs money
+ *
+ * **Before optimization:**
+ * ```javascript
+ * allow read: if get(...).data.userId == request.auth.uid;
+ * allow write: if get(...).data.userId == request.auth.uid;
+ * allow delete: if get(...).data.userId == request.auth.uid;
+ * ```
+ * - 3 `get()` calls for same document
+ *
+ * **After optimization (use function):**
+ * ```javascript
+ * function getTodoOwner(todoId) {
+ *   return get(/databases/$(database)/documents/todos/$(todoId)).data.userId;
+ * }
+ *
+ * allow read, write, delete: if getTodoOwner(todoId) == request.auth.uid;
+ * ```
+ * - Only 1 `get()` call
+ * - Result potentially cached
+ *
+ * ### 3. Use Indexes
+ *
+ * Firestore automatically indexes single fields, but composite indexes improve query performance:
+ *
+ * **Create index for common queries:**
+ * ```typescript
+ * // Common query
+ * query(
+ *   collection(db, 'todos'),
+ *   where('userId', '==', uid),
+ *   where('completed', '==', false),
+ *   orderBy('createdAt', 'desc')
+ * )
+ * ```
+ *
+ * **Index needed:** userId + completed + createdAt
+ *
+ * Firebase will prompt you to create the index on first query.
+ *
+ * ### 4. Cache Results in Client
+ *
+ * Don't refetch data if you already have it:
+ *
+ * ```typescript
+ * // Bad: Fetches every time
+ * const todo = await getDoc(doc(db, 'todos', todoId))
+ *
+ * // Good: Cache in state/context
+ * const { todos } = useTodos(user.uid) // Custom hook with cache
+ * const todo = todos.find(t => t.id === todoId)
+ * ```
+ *
+ * ## Performance Benchmarks
+ *
+ * | Rule Complexity | Latency | Cost per 100K requests |
+ * |-----------------|---------|------------------------|
+ * | Simple (no get()) | ~5ms | $0.00 |
+ * | 1 get() call | ~25ms | $0.36 |
+ * | 3 get() calls | ~75ms | $1.08 |
+ * | 10 get() calls | ~250ms | $3.60 |
+ *
+ * ## Best Practices
+ *
+ * 1. **Prefer simple checks** over complex nested queries
+ * 2. **Store denormalized data** to avoid get() calls
+ * 3. **Use functions** to avoid duplicate get() calls
+ * 4. **Test performance** in Rules Playground
+ * 5. **Monitor costs** in Firebase Console
+ */
+// CLOSE: performance-considerations
+
+/**
+ * REF: debugging-rules
+ *
+ * # Debugging Firestore Rules
+ *
+ * Troubleshooting common issues with security rules.
+ *
+ * ## Common Issues
+ *
+ * ### Issue 1: Field Name Mismatch
+ *
+ * **Problem:**
+ * ```javascript
+ * allow write: if request.auth.uid == resource.data.user_id;
+ * ```
+ *
+ * **Error:** Permission denied (field is `userId` not `user_id`)
+ *
+ * **Fix:**
+ * ```javascript
+ * allow write: if request.auth.uid == resource.data.userId;
+ * ```
+ *
+ * **Tip:** Field names are case-sensitive!
+ *
+ * ### Issue 2: Forgot Authentication Check
+ *
+ * **Problem:**
+ * ```javascript
+ * allow read: if resource.data.isPublic == true;
+ * ```
+ *
+ * **Issue:** Unauthenticated users can read public data
+ *
+ * **Fix:**
+ * ```javascript
+ * allow read: if isAuthenticated() && resource.data.isPublic == true;
+ * ```
+ *
+ * ### Issue 3: Wrong Resource Variable
+ *
+ * **Problem (on create):**
+ * ```javascript
+ * allow create: if resource.data.userId == request.auth.uid;
+ * ```
+ *
+ * **Error:** `resource` doesn't exist on create (document doesn't exist yet)
+ *
+ * **Fix:**
+ * ```javascript
+ * allow create: if request.resource.data.userId == request.auth.uid;
+ * ```
+ *
+ * **Remember:**
+ * - `resource`: Existing document data
+ * - `request.resource`: New document data
+ *
+ * ### Issue 4: Missing Required Fields
+ *
+ * **Problem:**
+ * ```javascript
+ * allow create: if request.resource.data.keys().hasAll(['title', 'userId', 'timestamp']);
+ * ```
+ *
+ * **Error:** Field is `createdAt` not `timestamp`
+ *
+ * **Fix:** Verify exact field names in your code
+ *
+ * ## Debugging Steps
+ *
+ * ### 1. Use Rules Playground
+ *
+ * - Firebase Console → Firestore → Rules → Rules Playground
+ * - Simulate the exact operation that's failing
+ * - Check which part of the rule returns false
+ *
+ * ### 2. Add Temporary Debug Rule
+ *
+ * ```javascript
+ * // Temporarily allow all to isolate issue
+ * match /todos/{todoId} {
+ *   allow read, write: if true; // REMOVE IN PRODUCTION!
+ * }
+ * ```
+ *
+ * If this works, problem is in your rules, not your code.
+ *
+ * ### 3. Check request.auth
+ *
+ * ```javascript
+ * // Verify user is authenticated
+ * allow read: if request.auth != null;
+ * ```
+ *
+ * If user is null, authentication isn't working.
+ *
+ * ### 4. Verify Field Names
+ *
+ * ```javascript
+ * // Log document data
+ * console.log(todo)
+ *
+ * // Check field names exactly match
+ * { userId: "123" }  // ✓ Correct
+ * { user_id: "123" } // ✗ Wrong
+ * { UserId: "123" }  // ✗ Wrong (case-sensitive)
+ * ```
+ *
+ * ### 5. Check Browser Console
+ *
+ * Look for detailed error messages:
+ * ```
+ * FirebaseError: Missing or insufficient permissions
+ * ```
+ *
+ * ### 6. Enable Debug Logging
+ *
+ * ```typescript
+ * import { setLogLevel } from 'firebase/firestore'
+ * setLogLevel('debug')
+ * ```
+ *
+ * Shows detailed Firestore operations in console.
+ *
+ * ## Debugging Checklist
+ *
+ * - [ ] Is user authenticated? (Check `request.auth != null`)
+ * - [ ] Do field names match exactly? (Case-sensitive)
+ * - [ ] Using correct resource variable? (`resource` vs `request.resource`)
+ * - [ ] Are all required fields present?
+ * - [ ] Do field types match validation? (string, number, bool)
+ * - [ ] Is `get()` path correct? (Check document paths)
+ * - [ ] Did you deploy the latest rules?
+ */
+// CLOSE: debugging-rules
+
+/**
+ * REF: deployment-guide
+ *
+ * # Deploying Firestore Rules
+ *
+ * How to deploy and manage security rules in production.
+ *
+ * ## Deployment Methods
+ *
+ * ### Method 1: Firebase CLI (Recommended)
+ *
+ * **Install Firebase CLI:**
+ * ```bash
+ * npm install -g firebase-tools
+ * firebase login
+ * ```
+ *
+ * **Deploy rules:**
+ * ```bash
+ * firebase deploy --only firestore:rules
+ * ```
+ *
+ * **Benefits:**
+ * - Version control (rules in git)
+ * - CI/CD integration
+ * - Rollback capability
+ * - Staging environments
+ *
+ * ### Method 2: Firebase Console
+ *
+ * 1. Go to Firebase Console
+ * 2. Select your project
+ * 3. Navigate to Firestore → Rules
+ * 4. Paste your rules
+ * 5. Click "Publish"
+ *
+ * **Benefits:**
+ * - Quick testing
+ * - No CLI needed
+ * - Immediate deployment
+ *
+ * ## Deployment takes effect immediately!
+ *
+ * **Important:** Changes are live as soon as you deploy. Test thoroughly first!
+ *
+ * ## Best Practices
+ *
+ * ### 1. Test Before Deploying
+ *
+ * ```bash
+ * # Test in emulator
+ * firebase emulators:start --only firestore
+ *
+ * # Run tests
+ * npm test
+ *
+ * # If tests pass, deploy
+ * firebase deploy --only firestore:rules
+ * ```
+ *
+ * ### 2. Use Version Control
+ *
+ * Keep `firestore.rules` in git:
+ * ```bash
+ * git add firestore.rules
+ * git commit -m "Update security rules: add messages collection"
+ * git push
+ * ```
+ *
+ * ### 3. Review Changes
+ *
+ * ```bash
+ * git diff firestore.rules
+ * ```
+ *
+ * Ensure changes are intentional before deploying.
+ *
+ * ### 4. Separate Staging and Production
+ *
+ * **Create staging project:**
+ * ```bash
+ * firebase use staging
+ * firebase deploy --only firestore:rules
+ * ```
+ *
+ * **Deploy to production:**
+ * ```bash
+ * firebase use production
+ * firebase deploy --only firestore:rules
+ * ```
+ *
+ * ### 5. Monitor After Deployment
+ *
+ * Check Firebase Console for:
+ * - Permission denied errors
+ * - Unexpected access patterns
+ * - Performance issues
+ *
+ * ## Rollback Strategy
+ *
+ * If deployment causes issues:
+ *
+ * ### Quick Rollback
+ * ```bash
+ * git revert HEAD
+ * firebase deploy --only firestore:rules
+ * ```
+ *
+ * ### Manual Rollback
+ * 1. Go to Firebase Console
+ * 2. Firestore → Rules
+ * 3. Click "History"
+ * 4. Select previous version
+ * 5. Click "Restore"
+ *
+ * ## CI/CD Integration
+ *
+ * **GitHub Actions example:**
+ * ```yaml
+ * name: Deploy Firestore Rules
+ *
+ * on:
+ *   push:
+ *     branches: [main]
+ *     paths: ['firestore.rules']
+ *
+ * jobs:
+ *   deploy:
+ *     runs-on: ubuntu-latest
+ *     steps:
+ *       - uses: actions/checkout@v2
+ *       - run: npm ci
+ *       - run: npm test
+ *       - uses: w9jds/firebase-action@master
+ *         with:
+ *           args: deploy --only firestore:rules
+ *         env:
+ *           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+ * ```
+ */
+// CLOSE: deployment-guide

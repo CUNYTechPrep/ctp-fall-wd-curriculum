@@ -1,0 +1,1314 @@
+/**
+ * REF: storage-rules-file
+ *
+ * # Firebase Storage Security Rules
+ *
+ * These rules control access to your Firebase Storage buckets and file uploads.
+ *
+ * ## Key Concepts
+ *
+ * | Concept | Description |
+ * |---------|-------------|
+ * | **Storage Rules** | Protect files in Cloud Storage |
+ * | **Path-Based** | Access control based on file paths |
+ * | **File Validation** | Validate type, size, and metadata |
+ * | **User-Scoped** | Organize files by user for easy access control |
+ *
+ * ## Storage vs Firestore Rules
+ *
+ * | Aspect | Firestore Rules | Storage Rules |
+ * |--------|----------------|---------------|
+ * | **Protects** | Database documents | Files and blobs |
+ * | **Structure** | Collection/Document paths | File paths |
+ * | **Validation** | Field types, sizes | File types, sizes, metadata |
+ * | **Nested Security** | get() function | No nested lookups |
+ *
+ * ## Recommended Storage Structure
+ *
+ * Organize files by user ID for easy security rules:
+ *
+ * ```
+ * /profile-pictures/{userId}/{filename}
+ * /todo-attachments/{userId}/{todoId}/{filename}
+ * ```
+ *
+ * ## Why Organize by User?
+ *
+ * - **Easy rules**: Simple ownership checks
+ * - **Easy deletion**: Delete all user's files at once
+ * - **Clear ownership**: Path shows who owns the file
+ * - **Security**: Prevents path traversal attacks
+ *
+ * **Bad structure:**
+ * ```
+ * /files/{filename}  // Can't tell who owns it
+ * ```
+ *
+ * **Good structure:**
+ * ```
+ * /files/{userId}/{filename}  // Clear ownership
+ * ```
+ *
+ * ## Deployment
+ *
+ * ### Via Firebase Console
+ * 1. Firebase Console → Storage → Rules
+ * 2. Paste these rules
+ * 3. Click "Publish"
+ *
+ * ### Via Firebase CLI
+ * ```bash
+ * firebase deploy --only storage
+ * ```
+ *
+ * ## How Storage Rules Differ from Firestore
+ *
+ * - **No get() function**: Cannot fetch other documents
+ * - **No nested checks**: Must rely on path structure
+ * - **File metadata**: Access to contentType, size, metadata
+ * - **Simpler queries**: Just path matching and file properties
+ */
+// CLOSE: storage-rules-file
+
+/**
+ * REF: storage-rules-version
+ *
+ * # Storage Rules Version
+ *
+ * Specifies which version of Firebase Storage Rules to use.
+ *
+ * ## Version 2
+ *
+ * Always use version 2 for:
+ * - Better error messages
+ * - Consistent with Firestore rules
+ * - Support for modern features
+ * - Required for new projects
+ */
+rules_version = '2';
+// CLOSE: storage-rules-version
+
+/**
+ * REF: storage-service-declaration
+ *
+ * # Storage Service Declaration
+ *
+ * Declares rules for the Firebase Storage service.
+ *
+ * ## Service Structure
+ *
+ * ```
+ * service firebase.storage {
+ *   match /b/{bucket}/o {
+ *     // File path rules go here
+ *   }
+ * }
+ * ```
+ *
+ * - `{bucket}`: Your storage bucket name
+ * - `/o`: Files and objects in the bucket
+ * - All file path rules nested inside
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+    // CLOSE: storage-service-declaration
+
+    /**
+     * REF: storage-helper-functions
+     *
+     * # Storage Helper Functions
+     *
+     * Reusable logic for cleaner and maintainable storage rules.
+     *
+     * ## isAuthenticated()
+     *
+     * Check if user is logged in.
+     *
+     * ```javascript
+     * function isAuthenticated() {
+     *   return request.auth != null;
+     * }
+     * ```
+     *
+     * **Returns**: `true` if user has valid authentication
+     *
+     * **Usage:**
+     * ```javascript
+     * allow read: if isAuthenticated();
+     * ```
+     *
+     * ## isOwner(userId)
+     *
+     * Check if authenticated user owns this file path.
+     *
+     * ```javascript
+     * function isOwner(userId) {
+     *   return request.auth.uid == userId;
+     * }
+     * ```
+     *
+     * **Parameters:**
+     * - `userId`: User ID from the file path
+     *
+     * **Returns**: `true` if auth.uid matches userId
+     *
+     * **Usage:**
+     * ```javascript
+     * match /files/{userId}/{filename} {
+     *   allow write: if isOwner(userId);
+     * }
+     * ```
+     *
+     * ## isImage()
+     *
+     * Validate that uploaded file is an image.
+     *
+     * ```javascript
+     * function isImage() {
+     *   return request.resource.contentType.matches('image/.*');
+     * }
+     * ```
+     *
+     * **Returns**: `true` if contentType starts with "image/"
+     *
+     * **Matches:**
+     * - image/jpeg ✓
+     * - image/png ✓
+     * - image/gif ✓
+     * - image/webp ✓
+     * - application/pdf ✗
+     *
+     * **Usage:**
+     * ```javascript
+     * allow write: if isImage();
+     * ```
+     *
+     * ## isUnder5MB()
+     *
+     * Check that file size is under 5 megabytes.
+     *
+     * ```javascript
+     * function isUnder5MB() {
+     *   return request.resource.size < 5 * 1024 * 1024;
+     * }
+     * ```
+     *
+     * **Calculation:**
+     * - 5 MB = 5 * 1024 KB = 5 * 1024 * 1024 bytes = 5,242,880 bytes
+     *
+     * **Returns**: `true` if file size < 5MB
+     *
+     * **Usage:**
+     * ```javascript
+     * allow write: if isUnder5MB();
+     * ```
+     *
+     * ## Creating Custom Validators
+     *
+     * You can create additional validation functions:
+     *
+     * ```javascript
+     * // Check for specific image types
+     * function isPNGorJPG() {
+     *   return request.resource.contentType.matches('image/(png|jpeg)');
+     * }
+     *
+     * // Check file size under 1MB
+     * function isUnder1MB() {
+     *   return request.resource.size < 1024 * 1024;
+     * }
+     *
+     * // Check custom metadata
+     * function hasApproval() {
+     *   return request.resource.metadata.approved == 'true';
+     * }
+     * ```
+     */
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user owns this path
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Validate image file type
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Check file size limit (5MB)
+    function isUnder5MB() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+    // CLOSE: storage-helper-functions
+
+    /**
+     * REF: profile-pictures-rules
+     *
+     * # Profile Pictures Storage Rules
+     *
+     * Rules for user profile picture uploads with public read access.
+     *
+     * ## Path Structure
+     *
+     * ```
+     * /profile-pictures/{userId}/{filename}
+     * ```
+     *
+     * **Example:**
+     * ```
+     * /profile-pictures/user123/avatar.jpg
+     * /profile-pictures/user456/profile.png
+     * ```
+     *
+     * ## Security Model
+     *
+     * ### Read Access
+     *
+     * ```javascript
+     * allow read: if isAuthenticated();
+     * ```
+     *
+     * **Who can read:** Any authenticated user
+     *
+     * **Why public?** Profile pictures need to be visible:
+     * - In public feed
+     * - In messages
+     * - On user profiles
+     * - In todo attributions
+     *
+     * ### Write Access
+     *
+     * ```javascript
+     * allow write: if isAuthenticated() &&
+     *                 isOwner(userId) &&
+     *                 isImage() &&
+     *                 isUnder5MB();
+     * ```
+     *
+     * **Requirements for upload:**
+     * 1. **Authenticated**: Must be logged in
+     * 2. **Owner**: userId in path must match auth.uid
+     * 3. **Image**: File must be an image type
+     * 4. **Size**: Must be under 5MB
+     *
+     * ## Validation Rules
+     *
+     * ### File Type Validation
+     *
+     * Only image files are allowed:
+     * - image/jpeg ✓
+     * - image/png ✓
+     * - image/gif ✓
+     * - image/webp ✓
+     * - application/pdf ✗
+     * - video/mp4 ✗
+     *
+     * ### Size Validation
+     *
+     * Maximum file size: 5MB (5,242,880 bytes)
+     *
+     * **Why 5MB?**
+     * - Large enough for high-quality photos
+     * - Small enough to prevent abuse
+     * - Fast upload/download times
+     * - Reasonable storage costs
+     *
+     * ## Security Features
+     *
+     * ### Path-Based Ownership
+     *
+     * The `{userId}` in the path prevents users from uploading to others' folders:
+     *
+     * ```javascript
+     * // Trying to upload to someone else's folder
+     * /profile-pictures/other-user-id/hacked.jpg
+     * // Rule check: isOwner('other-user-id') = false
+     * // Result: Denied!
+     * ```
+     *
+     * ### File Type Protection
+     *
+     * Image-only validation prevents:
+     * - Executable files (.exe, .sh)
+     * - Malicious scripts (.js, .php)
+     * - Large video files
+     * - Documents with macros
+     *
+     * ### Size Limits
+     *
+     * Prevents:
+     * - Storage abuse
+     * - Bandwidth exhaustion
+     * - Slow page loads
+     * - High costs
+     *
+     * ## Example Operations
+     *
+     * ### Uploading Profile Picture (Allowed)
+     *
+     * ```typescript
+     * import { ref, uploadBytes } from 'firebase/storage'
+     * import { storage } from '@/lib/firebase/client'
+     *
+     * const file = new File(['...'], 'avatar.jpg', { type: 'image/jpeg' })
+     * const storageRef = ref(storage, `profile-pictures/${user.uid}/avatar.jpg`)
+     *
+     * await uploadBytes(storageRef, file)
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - `isOwner(user.uid)`: true ✓
+     * - `isImage()`: true (image/jpeg) ✓
+     * - `isUnder5MB()`: true (file is 2MB) ✓
+     * - **Allowed!**
+     *
+     * ### Uploading to Another User's Folder (Denied)
+     *
+     * ```typescript
+     * const storageRef = ref(storage, `profile-pictures/other-user-id/fake.jpg`)
+     * await uploadBytes(storageRef, file)
+     * ```
+     *
+     * **Rule Check:**
+     * - `isOwner('other-user-id')`: false ✗
+     * - **Denied!** Permission denied
+     *
+     * ### Uploading Non-Image File (Denied)
+     *
+     * ```typescript
+     * const file = new File(['...'], 'virus.exe', { type: 'application/exe' })
+     * const storageRef = ref(storage, `profile-pictures/${user.uid}/virus.exe`)
+     * await uploadBytes(storageRef, file)
+     * ```
+     *
+     * **Rule Check:**
+     * - `isImage()`: false ✗ (not image/*)
+     * - **Denied!** Permission denied
+     *
+     * ### Reading Profile Picture (Allowed)
+     *
+     * ```typescript
+     * import { ref, getDownloadURL } from 'firebase/storage'
+     *
+     * const photoRef = ref(storage, 'profile-pictures/other-user/avatar.jpg')
+     * const url = await getDownloadURL(photoRef)
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - **Allowed!** (Can view anyone's profile picture)
+     */
+    match /profile-pictures/{userId}/{filename} {
+      // Anyone can view profile pictures (needed for public feed, messages)
+      allow read: if isAuthenticated();
+
+      // Only owner can upload/delete
+      allow write: if isAuthenticated() &&
+                      isOwner(userId) &&
+                      isImage() &&
+                      isUnder5MB();
+    }
+    // CLOSE: profile-pictures-rules
+
+    /**
+     * REF: todo-attachments-rules
+     *
+     * # Todo Attachments Storage Rules
+     *
+     * Rules for file attachments on todos with owner-based access control.
+     *
+     * ## Path Structure
+     *
+     * ```
+     * /todo-attachments/{userId}/{todoId}/{filename}
+     * ```
+     *
+     * **Example:**
+     * ```
+     * /todo-attachments/user123/todo456/document.pdf
+     * /todo-attachments/user123/todo789/image.png
+     * ```
+     *
+     * ## Why Three Path Segments?
+     *
+     * - **userId**: Owner of the files
+     * - **todoId**: Which todo they belong to
+     * - **filename**: The actual file name
+     *
+     * **Benefits:**
+     * - Easy to delete all attachments for a todo
+     * - Clear ownership hierarchy
+     * - Prevents path traversal
+     *
+     * ## Security Model
+     *
+     * ### Read Access
+     *
+     * ```javascript
+     * allow read: if isAuthenticated();
+     * ```
+     *
+     * **Who can read:** Any authenticated user
+     *
+     * **Limitation:** Storage rules cannot check if todo is public!
+     *
+     * Storage rules cannot use `get()` to fetch Firestore data, so we can't check:
+     * - Whether the todo is public or private
+     * - Who owns the todo
+     * - Whether the todo still exists
+     *
+     * **Solution:** Application code must enforce visibility
+     *
+     * ```typescript
+     * // Only show attachment links for accessible todos
+     * if (todo.isPublic || todo.userId === user.uid) {
+     *   // Show attachment download button
+     * }
+     * ```
+     *
+     * ### Write Access
+     *
+     * ```javascript
+     * allow write: if isAuthenticated() &&
+     *                 isOwner(userId) &&
+     *                 isUnder5MB();
+     * ```
+     *
+     * **Requirements for upload:**
+     * 1. **Authenticated**: Must be logged in
+     * 2. **Owner**: userId in path must match auth.uid
+     * 3. **Size**: Must be under 5MB
+     *
+     * **Note:** Any file type allowed (PDFs, images, etc.)
+     *
+     * ## Validation Rules
+     *
+     * ### File Type Validation
+     *
+     * All file types are allowed for todo attachments:
+     * - Images (jpg, png, gif)
+     * - Documents (pdf, doc, txt)
+     * - Spreadsheets (xls, csv)
+     * - Archives (zip, tar)
+     * - Code files (js, py, java)
+     *
+     * **Why allow all types?**
+     * - Todos can have diverse attachments
+     * - Users need flexibility
+     * - File type restrictions too limiting
+     *
+     * **Security:** Application should scan for malware
+     *
+     * ### Size Validation
+     *
+     * Maximum file size: 5MB
+     *
+     * Larger files should use:
+     * - Cloud Storage transfer service
+     * - Chunked uploads
+     * - External file hosts
+     *
+     * ## Coordinating with Firestore Rules
+     *
+     * Storage rules and Firestore rules work together:
+     *
+     * **Firestore (todoAttachments collection):**
+     * ```javascript
+     * // Stores metadata about attachment
+     * {
+     *   todoId: 'todo123',
+     *   fileName: 'document.pdf',
+     *   fileUrl: 'https://...',
+     *   fileSize: 102400,
+     *   uploadedAt: timestamp
+     * }
+     * ```
+     *
+     * **Storage (actual file):**
+     * ```
+     * /todo-attachments/user123/todo123/document.pdf
+     * ```
+     *
+     * **Flow:**
+     * 1. Upload file to Storage
+     * 2. Get download URL
+     * 3. Create Firestore document with metadata
+     * 4. Firestore rules check todo ownership
+     * 5. Storage rules check path ownership
+     *
+     * ## Example Operations
+     *
+     * ### Uploading Attachment (Allowed)
+     *
+     * ```typescript
+     * const file = new File(['...'], 'report.pdf', { type: 'application/pdf' })
+     * const path = `todo-attachments/${user.uid}/${todoId}/report.pdf`
+     * const storageRef = ref(storage, path)
+     *
+     * await uploadBytes(storageRef, file)
+     * const url = await getDownloadURL(storageRef)
+     *
+     * // Save metadata to Firestore
+     * await addDoc(collection(db, 'todoAttachments'), {
+     *   todoId,
+     *   fileName: file.name,
+     *   fileUrl: url,
+     *   fileSize: file.size,
+     *   fileType: file.type,
+     *   uploadedAt: serverTimestamp(),
+     * })
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - `isOwner(user.uid)`: true ✓
+     * - `isUnder5MB()`: true ✓
+     * - **Allowed!**
+     *
+     * ### Uploading to Another User's Path (Denied)
+     *
+     * ```typescript
+     * const path = `todo-attachments/other-user-id/${todoId}/file.pdf`
+     * const storageRef = ref(storage, path)
+     * await uploadBytes(storageRef, file)
+     * ```
+     *
+     * **Rule Check:**
+     * - `isOwner('other-user-id')`: false ✗
+     * - **Denied!** Permission denied
+     *
+     * ### Reading Attachment (Allowed)
+     *
+     * ```typescript
+     * const path = `todo-attachments/${ownerId}/${todoId}/file.pdf`
+     * const storageRef = ref(storage, path)
+     * const url = await getDownloadURL(storageRef)
+     * ```
+     *
+     * **Rule Check:**
+     * - `isAuthenticated()`: true ✓
+     * - **Allowed!**
+     *
+     * **Important:** Application must only show URLs for accessible todos!
+     *
+     * ## Security Considerations
+     *
+     * ### Storage Rules Limitations
+     *
+     * Storage rules cannot:
+     * - Fetch Firestore documents (no `get()` function)
+     * - Check complex permissions
+     * - Validate against database state
+     *
+     * **Must rely on:**
+     * - Path structure
+     * - File metadata
+     * - Application-level checks
+     *
+     * ### Application-Level Security
+     *
+     * ```typescript
+     * // Before showing attachment download link
+     * async function canAccessAttachment(userId: string, todoId: string) {
+     *   const todo = await getDoc(doc(db, 'todos', todoId))
+     *
+     *   if (!todo.exists()) return false
+     *
+     *   // Check if public or owned by user
+     *   return todo.data().isPublic || todo.data().userId === userId
+     * }
+     * ```
+     *
+     * ## Best Practices
+     *
+     * 1. **Always check in app** before showing attachment links
+     * 2. **Validate file types** in application code
+     * 3. **Scan for malware** before serving to users
+     * 4. **Delete storage files** when deleting todos
+     * 5. **Monitor storage usage** to prevent abuse
+     */
+    match /todo-attachments/{userId}/{todoId}/{filename} {
+      // Authenticated users can view
+      // App should only show attachments for accessible todos
+      allow read: if isAuthenticated();
+
+      // Only owner can upload/delete
+      allow write: if isAuthenticated() &&
+                      isOwner(userId) &&
+                      isUnder5MB();
+    }
+    // CLOSE: todo-attachments-rules
+
+    /**
+     * REF: deny-all-other-paths
+     *
+     * # Deny All Other Paths
+     *
+     * Explicit security rule to block all unmatched paths.
+     *
+     * ## Catchall Rule
+     *
+     * ```javascript
+     * match /{allPaths=**} {
+     *   allow read, write: if false;
+     * }
+     * ```
+     *
+     * ## What This Does
+     *
+     * - `{allPaths=**}`: Matches any path (wildcard)
+     * - `if false`: Always evaluates to false
+     * - **Result**: Denies all read and write operations
+     *
+     * ## Why Include This?
+     *
+     * ### Defense in Depth
+     *
+     * Even though Firebase denies by default, explicit denial:
+     * - Makes security intent clear
+     * - Prevents accidental permissions
+     * - Blocks typos in paths
+     * - Provides safety net
+     *
+     * ### Examples of What Gets Blocked
+     *
+     * ```typescript
+     * // Typo in path
+     * ref(storage, 'profile-picture/user123/avatar.jpg') // Missing 's'
+     * // Blocked by catchall ✓
+     *
+     * // Unplanned path
+     * ref(storage, 'uploads/file.pdf')
+     * // Blocked by catchall ✓
+     *
+     * // Root level upload
+     * ref(storage, 'file.pdf')
+     * // Blocked by catchall ✓
+     * ```
+     *
+     * ## Best Practice
+     *
+     * Always include a catchall deny rule at the end of your storage rules:
+     * - Explicit security posture
+     * - Clear intent to reviewers
+     * - Prevents future mistakes
+     */
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+    // CLOSE: deny-all-other-paths
+  }
+}
+
+/**
+ * REF: storage-rule-validation
+ *
+ * # Storage Rule Validation
+ *
+ * How to validate files using Storage rules properties.
+ *
+ * ## Available Validation Properties
+ *
+ * | Property | Type | Description | Example |
+ * |----------|------|-------------|---------|
+ * | request.resource.size | number | File size in bytes | 5242880 |
+ * | request.resource.contentType | string | MIME type | "image/jpeg" |
+ * | request.resource.metadata | object | Custom metadata | { approved: "true" } |
+ * | request.auth | object | User authentication | { uid: "user123" } |
+ * | Path variables | string | From path pattern | {userId}, {todoId} |
+ *
+ * ## File Size Validation
+ *
+ * **Max 1MB:**
+ * ```javascript
+ * allow write: if request.resource.size < 1 * 1024 * 1024;
+ * ```
+ *
+ * **Between 100KB and 10MB:**
+ * ```javascript
+ * allow write: if request.resource.size >= 100 * 1024 &&
+ *                 request.resource.size <= 10 * 1024 * 1024;
+ * ```
+ *
+ * ## Content Type Validation
+ *
+ * **Only PNG/JPG:**
+ * ```javascript
+ * allow write: if request.resource.contentType.matches('image/(png|jpeg)');
+ * ```
+ *
+ * **Images or PDFs:**
+ * ```javascript
+ * allow write: if request.resource.contentType.matches('image/.*') ||
+ *                 request.resource.contentType == 'application/pdf';
+ * ```
+ *
+ * **Block executable files:**
+ * ```javascript
+ * allow write: if !request.resource.contentType.matches('.*(exe|sh|bat)');
+ * ```
+ *
+ * ## Custom Metadata Validation
+ *
+ * **Require approval metadata:**
+ * ```javascript
+ * allow write: if request.resource.metadata.approved == 'true';
+ * ```
+ *
+ * **Set metadata on upload:**
+ * ```typescript
+ * await uploadBytes(ref, file, {
+ *   customMetadata: {
+ *     uploadedBy: user.uid,
+ *     approvedBy: 'admin-id',
+ *     category: 'documents',
+ *   }
+ * })
+ * ```
+ *
+ * ## Combined Validations
+ *
+ * ```javascript
+ * allow write: if isAuthenticated() &&
+ *                 isOwner(userId) &&
+ *                 request.resource.size < 5 * 1024 * 1024 &&
+ *                 request.resource.contentType.matches('image/.*') &&
+ *                 request.resource.metadata.approved == 'true';
+ * ```
+ */
+// CLOSE: storage-rule-validation
+
+/**
+ * REF: storage-security-best-practices
+ *
+ * # Storage Security Best Practices
+ *
+ * Guidelines for secure file storage implementation.
+ *
+ * ## Do's
+ *
+ * ### ✓ Require Authentication for Uploads
+ *
+ * ```javascript
+ * allow write: if request.auth != null;
+ * ```
+ *
+ * **Why:** Prevents anonymous abuse and spam
+ *
+ * ### ✓ Validate File Types
+ *
+ * ```javascript
+ * allow write: if request.resource.contentType.matches('image/.*');
+ * ```
+ *
+ * **Why:** Prevents malicious file uploads
+ *
+ * ### ✓ Enforce Size Limits
+ *
+ * ```javascript
+ * allow write: if request.resource.size < 5 * 1024 * 1024;
+ * ```
+ *
+ * **Why:** Prevents storage abuse and high costs
+ *
+ * ### ✓ Organize by User ID
+ *
+ * ```javascript
+ * match /files/{userId}/{filename} {
+ *   allow write: if request.auth.uid == userId;
+ * }
+ * ```
+ *
+ * **Why:** Clear ownership and easy access control
+ *
+ * ### ✓ Use Path Variables for Access Control
+ *
+ * ```javascript
+ * match /docs/{userId}/{docId}/{filename} {
+ *   allow read, write: if request.auth.uid == userId;
+ * }
+ * ```
+ *
+ * **Why:** Hierarchical security based on path structure
+ *
+ * ## Don'ts
+ *
+ * ### ✗ Allow Unauthenticated Uploads
+ *
+ * ```javascript
+ * // BAD: Anyone can upload
+ * allow write: if true;
+ * ```
+ *
+ * **Problem:** Spam, abuse, malicious files
+ *
+ * ### ✗ Skip File Type Validation
+ *
+ * ```javascript
+ * // BAD: Any file type accepted
+ * allow write: if isOwner(userId);
+ * ```
+ *
+ * **Problem:** Executable files, malware, inappropriate content
+ *
+ * ### ✗ Allow Unlimited File Sizes
+ *
+ * ```javascript
+ * // BAD: No size limit
+ * allow write: if isAuthenticated();
+ * ```
+ *
+ * **Problem:** Storage exhaustion, high costs, slow performance
+ *
+ * ### ✗ Use Predictable Paths
+ *
+ * ```javascript
+ * // BAD: Sequential or guessable paths
+ * /files/1.jpg
+ * /files/2.jpg
+ * ```
+ *
+ * **Problem:** Path enumeration, unauthorized access
+ *
+ * ### ✗ Trust Client-Side Validation Alone
+ *
+ * ```javascript
+ * // Client-side only (not enough!)
+ * if (file.size > 5MB) return alert('Too large')
+ * ```
+ *
+ * **Problem:** Easy to bypass, not secure
+ *
+ * **Solution:** Always validate server-side with Storage rules
+ */
+// CLOSE: storage-security-best-practices
+
+/**
+ * REF: storage-testing-rules
+ *
+ * # Testing Storage Rules
+ *
+ * How to test Storage rules before deployment.
+ *
+ * ## Firebase Console Testing
+ *
+ * **Access:** Firebase Console → Storage → Rules → Rules Playground
+ *
+ * ## Test Cases
+ *
+ * ### Test 1: Upload to Own Folder
+ *
+ * **Expected:** Should succeed
+ *
+ * ```
+ * Operation: write
+ * Path: /profile-pictures/user123/avatar.jpg
+ * Auth: Authenticated (uid: user123)
+ * File: image/jpeg, 2MB
+ * Result: ✓ Allow
+ * ```
+ *
+ * ### Test 2: Upload to Other's Folder
+ *
+ * **Expected:** Should fail
+ *
+ * ```
+ * Operation: write
+ * Path: /profile-pictures/user456/avatar.jpg
+ * Auth: Authenticated (uid: user123)
+ * File: image/jpeg, 2MB
+ * Result: ✗ Deny (not owner)
+ * ```
+ *
+ * ### Test 3: Upload Non-Image as Profile
+ *
+ * **Expected:** Should fail
+ *
+ * ```
+ * Operation: write
+ * Path: /profile-pictures/user123/document.pdf
+ * Auth: Authenticated (uid: user123)
+ * File: application/pdf, 1MB
+ * Result: ✗ Deny (not an image)
+ * ```
+ *
+ * ### Test 4: Upload Oversized File
+ *
+ * **Expected:** Should fail
+ *
+ * ```
+ * Operation: write
+ * Path: /profile-pictures/user123/huge.jpg
+ * Auth: Authenticated (uid: user123)
+ * File: image/jpeg, 10MB
+ * Result: ✗ Deny (exceeds 5MB limit)
+ * ```
+ *
+ * ### Test 5: Read Profile Picture (Authenticated)
+ *
+ * **Expected:** Should succeed
+ *
+ * ```
+ * Operation: read
+ * Path: /profile-pictures/user456/avatar.jpg
+ * Auth: Authenticated (uid: user123)
+ * Result: ✓ Allow
+ * ```
+ *
+ * ### Test 6: Read Profile Picture (Unauthenticated)
+ *
+ * **Expected:** Should fail
+ *
+ * ```
+ * Operation: read
+ * Path: /profile-pictures/user456/avatar.jpg
+ * Auth: Unauthenticated
+ * Result: ✗ Deny (not authenticated)
+ * ```
+ */
+// CLOSE: storage-testing-rules
+
+/**
+ * REF: storage-common-patterns
+ *
+ * # Common Storage Rule Patterns
+ *
+ * Reusable patterns for different storage scenarios.
+ *
+ * ## User-Scoped Paths
+ *
+ * Allow users full access to their folder:
+ *
+ * ```javascript
+ * match /users/{userId}/{allPaths=**} {
+ *   allow read, write: if request.auth.uid == userId;
+ * }
+ * ```
+ *
+ * - `{allPaths=**}`: Matches any nested path
+ * - User can manage all files in their folder
+ * - Simple and flexible
+ *
+ * ## Public Readable, Owner Writable
+ *
+ * Public assets that only admin can modify:
+ *
+ * ```javascript
+ * match /public/{filename} {
+ *   allow read: if true;
+ *   allow write: if request.auth.uid == 'admin-user-id';
+ * }
+ * ```
+ *
+ * **Use cases:**
+ * - Site logos
+ * - Default avatars
+ * - Shared resources
+ *
+ * ## Temporary Uploads
+ *
+ * Uploads that cleanup jobs can delete:
+ *
+ * ```javascript
+ * match /temp/{userId}/{filename} {
+ *   allow read, write: if request.auth.uid == userId;
+ *   allow delete: if true; // Cloud Function can clean up
+ * }
+ * ```
+ *
+ * **Use cases:**
+ * - Image processing queue
+ * - Temporary file storage
+ * - Upload previews
+ *
+ * ## Shared Team Folders
+ *
+ * Multiple users access same folder:
+ *
+ * ```javascript
+ * match /teams/{teamId}/{filename} {
+ *   allow read: if isAuthenticated() &&
+ *                 request.auth.token.teamId == teamId;
+ *
+ *   allow write: if isAuthenticated() &&
+ *                  request.auth.token.teamId == teamId &&
+ *                  request.auth.token.role == 'editor';
+ * }
+ * ```
+ *
+ * **Requires:** Custom claims in auth tokens
+ *
+ * ## Version-Controlled Files
+ *
+ * Keep file history with timestamps:
+ *
+ * ```javascript
+ * match /documents/{userId}/{docId}/versions/{timestamp} {
+ *   allow read: if request.auth.uid == userId;
+ *   allow create: if request.auth.uid == userId;
+ *   allow delete: if false; // Never delete versions
+ * }
+ * ```
+ */
+// CLOSE: storage-common-patterns
+
+/**
+ * REF: storage-metadata-validation
+ *
+ * # Storage Metadata Validation
+ *
+ * Using custom metadata for advanced validation.
+ *
+ * ## What is Custom Metadata?
+ *
+ * Key-value pairs attached to files:
+ *
+ * ```typescript
+ * await uploadBytes(ref, file, {
+ *   customMetadata: {
+ *     uploadedBy: user.uid,
+ *     approvedBy: 'admin-id',
+ *     category: 'documents',
+ *     version: '1.0',
+ *   }
+ * })
+ * ```
+ *
+ * ## Validating Metadata in Rules
+ *
+ * ### Require Specific Metadata
+ *
+ * ```javascript
+ * match /uploads/{filename} {
+ *   allow write: if request.resource.metadata.uploadedBy == request.auth.uid &&
+ *                   request.resource.metadata.approvedBy != null;
+ * }
+ * ```
+ *
+ * ### Validate Metadata Values
+ *
+ * ```javascript
+ * match /documents/{filename} {
+ *   allow write: if request.resource.metadata.category in ['reports', 'invoices', 'contracts'];
+ * }
+ * ```
+ *
+ * ### Track File Versions
+ *
+ * ```javascript
+ * match /files/{userId}/{filename} {
+ *   allow create: if request.resource.metadata.version == '1.0';
+ *
+ *   allow update: if request.resource.metadata.version != resource.metadata.version;
+ * }
+ * ```
+ *
+ * ## Use Cases
+ *
+ * - **Approval workflows**: Require approval before access
+ * - **Categorization**: Organize files by category
+ * - **Versioning**: Track file versions
+ * - **Attribution**: Track who uploaded
+ * - **Expiration**: Mark files for cleanup
+ */
+// CLOSE: storage-metadata-validation
+
+/**
+ * REF: storage-file-type-whitelist
+ *
+ * # File Type Whitelisting
+ *
+ * Restricting uploads to specific file types.
+ *
+ * ## Creating a Whitelist Function
+ *
+ * ```javascript
+ * function isAllowedType() {
+ *   return request.resource.contentType.matches('image/(png|jpeg|gif|webp)') ||
+ *          request.resource.contentType.matches('application/pdf') ||
+ *          request.resource.contentType.matches('text/plain');
+ * }
+ * ```
+ *
+ * **Allowed types:**
+ * - PNG images
+ * - JPEG images
+ * - GIF images
+ * - WebP images
+ * - PDF documents
+ * - Plain text files
+ *
+ * ## Using the Whitelist
+ *
+ * ```javascript
+ * match /uploads/{userId}/{filename} {
+ *   allow write: if isAuthenticated() &&
+ *                   isOwner(userId) &&
+ *                   isAllowedType() &&
+ *                   isUnder5MB();
+ * }
+ * ```
+ *
+ * ## Common File Type Patterns
+ *
+ * **Images only:**
+ * ```javascript
+ * request.resource.contentType.matches('image/.*')
+ * ```
+ *
+ * **Documents:**
+ * ```javascript
+ * request.resource.contentType.matches('application/(pdf|msword|vnd.openxmlformats-officedocument.wordprocessingml.document)')
+ * ```
+ *
+ * **Videos:**
+ * ```javascript
+ * request.resource.contentType.matches('video/(mp4|webm|quicktime)')
+ * ```
+ *
+ * **Archives:**
+ * ```javascript
+ * request.resource.contentType.matches('application/(zip|x-tar|x-gzip)')
+ * ```
+ */
+// CLOSE: storage-file-type-whitelist
+
+/**
+ * REF: storage-rate-limiting
+ *
+ * # Rate Limiting Uploads
+ *
+ * Storage rules don't support rate limiting directly. Use application code or Cloud Functions.
+ *
+ * ## Application-Level Rate Limiting
+ *
+ * ```typescript
+ * // Track uploads in Firestore
+ * async function checkUploadLimit(userId: string) {
+ *   const uploadsRef = doc(db, 'uploadLimits', userId)
+ *   const limitsDoc = await getDoc(uploadsRef)
+ *
+ *   const data = limitsDoc.data() || { count: 0, date: new Date().toDateString() }
+ *
+ *   // Reset if new day
+ *   if (data.date !== new Date().toDateString()) {
+ *     data.count = 0
+ *     data.date = new Date().toDateString()
+ *   }
+ *
+ *   // Check limit
+ *   if (data.count >= 10) {
+ *     throw new Error('Daily upload limit exceeded')
+ *   }
+ *
+ *   // Increment count
+ *   await setDoc(uploadsRef, { ...data, count: data.count + 1 })
+ * }
+ * ```
+ *
+ * ## Cloud Function Rate Limiting
+ *
+ * ```typescript
+ * import { onObjectFinalized } from 'firebase-functions/v2/storage'
+ *
+ * export const checkUploadRate = onObjectFinalized(async (event) => {
+ *   const userId = event.data.metadata?.uploadedBy
+ *
+ *   const uploadsToday = await getUploadCount(userId, new Date())
+ *
+ *   if (uploadsToday > 10) {
+ *     // Delete the file
+ *     await deleteObject(event.data.name)
+ *     throw new Error('Upload limit exceeded')
+ *   }
+ * })
+ * ```
+ *
+ * ## Why Not in Rules?
+ *
+ * Storage rules are stateless:
+ * - Cannot track upload counts
+ * - Cannot access timestamps
+ * - Cannot query Firestore
+ *
+ * **Must use:** Application code or Cloud Functions
+ */
+// CLOSE: storage-rate-limiting
+
+/**
+ * REF: storage-deployment-guide
+ *
+ * # Deploying Storage Rules
+ *
+ * How to deploy and manage Storage rules in production.
+ *
+ * ## Via Firebase CLI
+ *
+ * **Deploy rules:**
+ * ```bash
+ * firebase deploy --only storage
+ * ```
+ *
+ * **Benefits:**
+ * - Version control
+ * - CI/CD integration
+ * - Consistent deployments
+ *
+ * ## Via Firebase Console
+ *
+ * 1. Go to Firebase Console
+ * 2. Navigate to Storage → Rules
+ * 3. Edit rules in browser
+ * 4. Click "Publish"
+ *
+ * **Benefits:**
+ * - Quick testing
+ * - No CLI needed
+ * - Immediate deployment
+ *
+ * ## Deployment Takes Effect Immediately
+ *
+ * **Warning:** Changes are live instantly. Test thoroughly first!
+ *
+ * ## Best Practices
+ *
+ * ### 1. Test Before Deploying
+ *
+ * - Use Rules Playground
+ * - Test all scenarios
+ * - Verify with actual files
+ *
+ * ### 2. Version Control
+ *
+ * Keep `storage.rules` in git:
+ * ```bash
+ * git add storage.rules
+ * git commit -m "Update storage rules"
+ * ```
+ *
+ * ### 3. Staging Environment
+ *
+ * Test in staging before production:
+ * ```bash
+ * firebase use staging
+ * firebase deploy --only storage
+ *
+ * # After testing
+ * firebase use production
+ * firebase deploy --only storage
+ * ```
+ *
+ * ### 4. Monitor After Deployment
+ *
+ * Check Firebase Console for:
+ * - Permission denied errors
+ * - Unexpected uploads
+ * - Storage usage spikes
+ */
+// CLOSE: storage-deployment-guide

@@ -1,0 +1,93 @@
+/**
+ * REF: Package.json - Project Dependencies & Scripts
+ *
+ * Defines project metadata, NPM scripts, and all dependencies.
+ *
+ * ## NPM Scripts
+ *
+ * | Script | Command | Purpose |
+ * |--------|---------|---------|
+ * | `dev` | `vite` | Start dev server (localhost:5173) |
+ * | `build` | `tsc && vite build` | Type-check then build for production |
+ * | `preview` | `vite preview` | Preview production build locally |
+ * | `lint` | `eslint ...` | Check code style and quality |
+ *
+ * ### Usage
+ * ```bash
+ * npm run dev      # Development
+ * npm run build    # Production build
+ * npm run preview  # Test production build
+ * npm run lint     # Code quality check
+ * ```
+ *
+ * ## Core Dependencies
+ *
+ * ### React Ecosystem
+ * - **react**: UI library (v18.3.1)
+ * - **react-dom**: React DOM renderer
+ * - **react-router-dom**: Client-side routing
+ *
+ * ### Backend/Data
+ * - **firebase**: Google Firebase SDK (Auth, Firestore, Storage)
+ *
+ * ## Dev Dependencies
+ *
+ * ### Build & Bundling
+ * - **vite**: Lightning-fast build tool and dev server
+ * - **@vitejs/plugin-react**: React Fast Refresh plugin
+ *
+ * ### Styling
+ * - **tailwindcss**: Utility-first CSS framework
+ * - **postcss**: CSS transformation tool
+ * - **autoprefixer**: Adds vendor prefixes automatically
+ *
+ * ### Type Safety
+ * - **typescript**: Type-safe JavaScript
+ * - **@types/react**: Type definitions for React
+ * - **@types/react-dom**: Type definitions for React DOM
+ *
+ * ### Code Quality
+ * - **eslint**: Code linting and style checking
+ * - **@typescript-eslint/...**: TypeScript-aware linting
+ * - **eslint-plugin-react-***: React-specific rules
+ *
+ * ## Key Versions
+ * - React 18: Modern concurrent rendering
+ * - Vite 5: Fastest build tool available
+ * - Firebase 10: Latest with improved performance
+ * - TypeScript 5: Latest language version
+ *
+ * CLOSE
+ */
+{
+  "name": "react-vite-firebase-todo",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.20.0",
+    "firebase": "^10.7.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
+  }
+}

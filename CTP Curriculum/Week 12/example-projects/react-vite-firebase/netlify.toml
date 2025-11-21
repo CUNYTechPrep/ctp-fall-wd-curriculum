@@ -1,0 +1,135 @@
+/**
+ * Netlify Configuration for React + Vite SPA
+ *
+ * This file configures Netlify deployment for the Vite application.
+ *
+ * KEY CONCEPTS:
+ * - SPA routing fallback
+ * - Build command configuration
+ * - Redirect rules
+ * - Environment variables
+ *
+ * SPA ROUTING:
+ * - All routes handled by React Router
+ * - Server must redirect all paths to index.html
+ * - React Router then shows correct page
+ *
+ * VIDEO GUIDE: netlify-deployment.mp4
+ */
+
+[build]
+  # Build command - Vite creates optimized production build
+  command = "npm run build"
+
+  # Publish directory - where build outputs static files
+  publish = "dist"
+
+/**
+ * REDIRECTS
+ *
+ * Critical for SPA routing!
+ *
+ * Rule: Redirect all routes to /index.html
+ * Status: 200 (not 301/302) - SPA rewrite, not redirect
+ * Force: true - Override other rules
+ *
+ * WHY:
+ * - User visits /dashboard
+ * - Server serves index.html (status 200)
+ * - React Router sees /dashboard in URL
+ * - React Router renders Dashboard component
+ *
+ * Without this, /dashboard would return 404!
+ */
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+/**
+ * ENVIRONMENT VARIABLES
+ *
+ * Set in Netlify Dashboard → Site settings → Environment variables
+ *
+ * Required:
+ * - VITE_FIREBASE_API_KEY
+ * - VITE_FIREBASE_AUTH_DOMAIN
+ * - VITE_FIREBASE_PROJECT_ID
+ * - VITE_FIREBASE_STORAGE_BUCKET
+ * - VITE_FIREBASE_MESSAGING_SENDER_ID
+ * - VITE_FIREBASE_APP_ID
+ *
+ * Netlify injects these during build
+ */
+
+[build.environment]
+  # Node version
+  NODE_VERSION = "20"
+
+/**
+ * HEADERS
+ *
+ * Add security headers
+ */
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Cache static assets
+    Cache-Control = "public, max-age=31536000, immutable"
+
+/**
+ * CACHE FOR HTML
+ *
+ * Don't cache index.html (SPA entry point)
+ */
+[[headers]]
+  for = "/index.html"
+
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+/**
+ * DEPLOYMENT WORKFLOW
+ *
+ * 1. Push to GitHub
+ * 2. Netlify detects push
+ * 3. Runs: npm install && npm run build
+ * 4. Deploys dist/ to CDN
+ * 5. Site live!
+ *
+ * Automatic:
+ * - HTTPS certificates
+ * - CDN distribution
+ * - Atomic deploys
+ * - Instant rollbacks
+ */
+
+/**
+ * PREVIEW DEPLOYS
+ *
+ * Every PR gets preview URL:
+ * - https://deploy-preview-123--yoursite.netlify.app
+ * - Test before merging
+ * - Share with team
+ * - Automatic cleanup when PR closed
+ */
+
+/**
+ * FUNCTIONS (OPTIONAL)
+ *
+ * Netlify Functions for serverless:
+ * ```toml
+ * [functions]
+ *   directory = "netlify/functions"
+ * ```
+ *
+ * But for this SPA, we don't need functions!
+ * Firebase handles backend
+ */

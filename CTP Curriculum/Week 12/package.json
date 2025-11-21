@@ -1,0 +1,23 @@
+{
+  "name": "week-12-example-projects",
+  "version": "1.0.0",
+  "description": "Full-stack React example projects with Groc documentation",
+  "scripts": {
+    "dev": "cd docs-viewer && npm run dev",
+    "build": "cd docs-viewer && npm install && npm run build",
+    "preview": "cd docs-viewer && npm run start"
+  },
+  "devDependencies": {
+    "docco": "^0.9.1"
+  },
+  "keywords": [
+    "react",
+    "nextjs",
+    "firebase",
+    "supabase",
+    "tutorial",
+    "documentation"
+  ],
+  "author": "",
+  "license": "MIT"
+}
